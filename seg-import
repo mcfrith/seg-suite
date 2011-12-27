@@ -1,0 +1,169 @@
+#! /usr/bin/env python
+
+# Copyright 2011 Martin C. Frith
+
+# Read segments or alignments in various formats, and write them in
+# SEG format.
+
+import fileinput, itertools, operator, optparse, os, signal, sys
+
+def printTab(*things):
+    print "\t".join(map(str, things))
+
+def importBed(lines):
+    for line in lines:
+        w = line.split()
+        if not w: continue
+        # Allow for "track" lines?
+        # What about "#" for comments?
+        chrom = w[0]
+        beg = int(w[1])
+        end = int(w[2])
+        size = end - beg
+        if len(w) > 5 and w[5] == "-": beg = -end  # it's on the minus strand
+        printTab(size, chrom, beg)
+
+def importGff(lines):
+    for line in lines:
+        w = line.split()  # XXX tabs?
+        if not w: continue
+        if w[0].startswith("#"): continue
+        seqname = w[0]
+        beg = int(w[3]) - 1  # convert from 1-based to 0-based coordinate
+        end = int(w[4])
+        strand = w[6]
+        size = end - beg
+        if strand == "-": beg = -end
+        printTab(size, seqname, beg)
+
+def segStartFromMafStart(mafStart, strand, seqLength):
+    """MAF start coordinate --> SEG start coordinate."""
+    if strand == "-": return mafStart - seqLength
+    return mafStart
+
+def isMafSequenceLine(line):
+    return line.startswith("s")
+
+def isGapless(column):
+    return "-" not in column
+
+def isTranslatedMaf(seq, size):
+    gaps = seq.count("-")
+    return "\\" in seq or "/" in seq or len(seq) - gaps < size
+
+def sequenceSpan(seq):  # in future, maybe allow for translated alignments
+    seq = "".join(seq)  # ugly
+    return len(seq) - seq.count("-")
+
+def importMaf(lines):
+    for k, v in itertools.groupby(lines, str.isspace):
+        if k: continue
+        sLines = filter(isMafSequenceLine, v)
+        if not sLines: continue
+        sRows = map(str.split, sLines)
+        sCols = zip(*sRows)
+        seqNames = sCols[1]
+        starts = map(int, sCols[2])
+        sizes = map(int, sCols[3])  # the alignment span in each sequence
+        strands = sCols[4]
+        seqLengths = map(int, sCols[5])
+        alignmentRows = sCols[6]
+        if True in map(isTranslatedMaf, alignmentRows, sizes):
+            raise Exception("translated DNA is not supported")
+        starts = map(segStartFromMafStart, starts, strands, seqLengths)
+        alignmentCols = zip(*alignmentRows)
+        for b, c in itertools.groupby(alignmentCols, isGapless):
+            r = zip(*c)
+            spans = map(sequenceSpan, r)
+            if b:
+                length = spans[0]
+                printTab(length, *itertools.chain(*zip(seqNames, starts)))
+            starts = map(operator.add, starts, spans)
+
+def pslSplit(s):
+    return s.rstrip(",").split(",")
+
+def importPsl(lines):
+    for line in lines:
+        w = line.split()
+        if not w: continue
+        if not w[0].isdigit(): continue
+        strand = w[8]
+        # No support for translated alignments:
+        if strand not in ("+", "-"):
+            raise Exception("unrecognized strand: " + strand)
+        qName = w[9]
+        qSize = int(w[10])
+        tName = w[13]
+        blockSizes = pslSplit(w[18])
+        qStarts = pslSplit(w[19])
+        tStarts = pslSplit(w[20])
+        for i, j, k in zip(blockSizes, tStarts, qStarts):
+            qStart = segStartFromMafStart(int(k), strand, qSize)
+            printTab(i, tName, j, qName, qStart)
+
+def cigarPieces(cigarString):
+    for k, v in itertools.groupby(cigarString, str.isdigit):
+        s = "".join(v)
+        if k:
+            n = int(s)
+        else:
+            if   s in "M=X": yield "M", n
+            elif s in "DN":  yield "D", n
+            elif s in "ISH": yield "I", n
+
+def importSam(lines):
+    for line in lines:
+        if line.startswith("@"): continue
+        w = line.split()  # XXX tabs?
+        if not w: continue
+        flag = int(w[1])
+        if flag & 4: continue
+        qname = w[0]
+        rname = w[2]
+        rpos = int(w[3]) - 1  # convert from 1-based to 0-based coordinate
+        pieces = list(cigarPieces(w[5]))
+
+        qlen = sum(j for i, j in pieces if i != "D")
+
+        qpos = 0
+        if flag & 16: qpos = -qlen  # it's a reverse-strand alignment
+
+        for k, v in itertools.groupby(pieces, operator.itemgetter(0)):
+            n = sum(j for i, j in v)
+            if k == "M": printTab(n, rname, rpos, qname, qpos)
+            if k != "I": rpos += n
+            if k != "D": qpos += n
+
+def segImport(opts, args):
+    format = args[0]
+    lines = fileinput.input(args[1:])
+    if   format == "bed": importBed(lines)
+    elif format == "gff": importGff(lines)
+    elif format == "maf": importMaf(lines)
+    elif format == "psl": importPsl(lines)
+    elif format == "sam": importSam(lines)
+    else: raise Exception("unknown format: " + format)
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
+
+    usage = """
+  %prog bed inputFile(s)
+  %prog gff inputFile(s)
+  %prog maf inputFile(s)
+  %prog psl inputFile(s)
+  %prog sam inputFile(s)"""
+
+    description = "Read segments or alignments in various formats, and write them in SEG format."
+    op = optparse.OptionParser(usage=usage, description=description)
+    opts, args = op.parse_args()
+
+    if len(args) < 1:
+        op.error("please give me a format and some data")
+
+    try: segImport(opts, args)
+    except KeyboardInterrupt: pass  # avoid silly error message
+    except Exception, e:
+        prog = os.path.basename(sys.argv[0])
+        sys.exit(prog + ": error: " + str(e))

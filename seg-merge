@@ -1,0 +1,82 @@
+#! /usr/bin/env python
+
+# Copyright 2011 Martin C. Frith
+
+# Read segment-tuples in SEG format, and write them with overlapping
+# and touching ones merged.
+
+# Should it be called seg-union?
+
+# Internally, this algorithm replaces the length (1st column) with the
+# end coordinate in the 1st sequence.
+
+import fileinput, itertools, operator, optparse, os, signal, sys
+
+def segBeg(s): return s[1], s[2]  # seqName, begCoordinate
+
+def segEnd(s): return s[1], s[0]  # seqName, endCoordinate
+
+def sortedSegInput(lines):
+    oldSortKey = "", 0
+    for line in lines:
+        if line.startswith("#") or line.isspace(): continue
+        s = line.split()
+        for i in range(0, len(s), 2):
+            s[i] = int(s[i])
+        s[0] += s[2]  # replace length with end
+        newSortKey = segBeg(s)
+        if newSortKey < oldSortKey:
+            raise Exception("input not sorted properly")
+        oldSortKey = newSortKey
+        yield s
+
+def writeSeg(s):
+    s[0] -= s[2]  # replace end with length
+    print "\t".join(map(str, s))
+
+def writeOrKeep(oldSegs, newSeg):
+    beg = segBeg(newSeg)
+    for i in oldSegs:
+        if segEnd(i) < beg:  # it can't overlap any more: write & discard
+            writeSeg(i)
+        else:
+            yield i  # it might overlap something: keep it
+
+def isSame(things):
+    """Are all the things the same?"""
+    g = itertools.groupby(things)
+    for i in g: break
+    for i in g: return False
+    return True
+
+def isOverlappable(s, t):
+    return s[3::2] == t[3::2] and isSame(map(operator.sub, s[2::2], t[2::2]))
+
+def mergeOneNewSeg(oldSegs, newSeg):
+    for i in oldSegs:
+        if isOverlappable(i, newSeg):
+            if newSeg[0] > i[0]: i[0] = newSeg[0]  # merge overlapping SEGs
+            return
+    oldSegs.append(newSeg)  # the new SEG did not overlap any previous one
+
+def segMerge(opts, args):
+    oldSegs = []
+    for i in sortedSegInput(fileinput.input(args)):
+        oldSegs = list(writeOrKeep(oldSegs, i))
+        mergeOneNewSeg(oldSegs, i)
+    for i in oldSegs:
+        writeSeg(i)
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
+
+    usage = "%prog seg-file(s)"
+    description = "Merge overlapping and touching segment-tuples."
+    op = optparse.OptionParser(usage=usage, description=description)
+    opts, args = op.parse_args()
+
+    try: segMerge(opts, args)
+    except KeyboardInterrupt: pass  # avoid silly error message
+    except Exception, e:
+        prog = os.path.basename(sys.argv[0])
+        sys.exit(prog + ": error: " + str(e))

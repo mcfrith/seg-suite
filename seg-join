@@ -33,6 +33,7 @@ def sortedSegInput(lines):
     for line in lines:
         if line.startswith("#") or line.isspace(): continue
         s = line.split()
+        # Should we skip lines where the first word is not a number?
         for i in range(0, len(s), 2):
             s[i] = int(s[i])
         s[0] += s[2]  # replace length with end
@@ -68,23 +69,26 @@ def overlappingSegs(querySeg, referenceSegs, keptSegs):
 def writeUnjoinableSegs(querySegs, referenceSegs, isComplete):
     keptSegs = []
     for i in querySegs:
-        iPos = i[2]
+        iend, iname, ibeg = i[:3]
         for j in overlappingSegs(i, referenceSegs, keptSegs):
             if isComplete: break
-            if j[2] > iPos: writeSegSlice(i, iPos, j[2])
-            if j[0] > iPos: iPos = j[0]
+            jend, jname, jbeg = j[:3]
+            if jbeg > ibeg: writeSegSlice(i, ibeg, jbeg)
+            if jend > ibeg: ibeg = jend
         else:
-            if i[0] > iPos: writeSegSlice(i, iPos, i[0])
+            if iend > ibeg: writeSegSlice(i, ibeg, iend)
 
 def writeJoinedSegs(sortedSegs1, sortedSegs2, isComplete1, isComplete2):
     keptSegs = []
     for i in sortedSegs1:
+        iend, iname, ibeg = i[:3]
         for j in overlappingSegs(i, sortedSegs2, keptSegs):
-            beg = max(i[2], j[2])
-            end = min(i[0], j[0])
-            if isComplete1 and (beg > i[2] or end < i[0]): continue
-            if isComplete2 and (beg > j[2] or end < j[0]): continue
-            writeTab(itertools.chain((end - beg, i[1], beg),
+            jend, jname, jbeg = j[:3]
+            if isComplete1 and (ibeg < jbeg or iend > jend): continue
+            if isComplete2 and (jbeg < ibeg or jend > iend): continue
+            beg = max(ibeg, jbeg)
+            end = min(iend, jend)
+            writeTab(itertools.chain((end - beg, iname, beg),
                                      segSliceTail(i, beg),
                                      segSliceTail(j, beg)))
 

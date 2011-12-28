@@ -68,13 +68,13 @@ segment-triples::
 
   seg-join ab.seg ac.seg > abc.seg
 
-Both files must be in the order produced by seg-sort, else it will
-complain.
-
 If you have two segment files, x.seg and y.seg, this will find all
 intersections between them::
 
   seg-join x.seg y.seg > intersections.seg
+
+Both files must be in the order produced by seg-sort, else it will
+complain.
 
 The following options are available.
 

@@ -131,6 +131,25 @@ to it.  Here are some options that might be useful.
          indicates 2 gibibytes. You can possibly make large sorts
          faster by increasing the buffer.
 
+seg-swap
+--------
+
+This program swaps the first two segments in each segment-tuple.  In
+other words, it swaps columns 2-3 with columns 4-5.  Run it like
+this::
+
+  seg-swap original.seg > swapped.seg
+
+After swapping, seg-swap canonicalizes strands.  In other words, if
+the first segment in a tuple is reverse-stranded, it flips the strands
+of all segments in that tuple.
+
+These options may be used:
+
+-n N  Swap the Nth segment with the first segment.
+
+-s  Do not canonicalize strands.
+
 Example: evaluating pairwise alignments
 ---------------------------------------
 

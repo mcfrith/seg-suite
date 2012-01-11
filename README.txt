@@ -101,6 +101,13 @@ The following options are available.
 
               seg-join -v1 -c1 x.seg y.seg > outside.seg
 
+-w  This option makes it join based on identical coordinates in all
+    sequences, not just the first sequence.  For example, this will
+    find all intersections between segment-pairs in ab.seg and
+    cd.seg::
+
+      seg-join -w ab.seg cd.seg > ef.seg
+
 seg-merge
 ---------
 
@@ -159,15 +166,13 @@ aligned to reference sequences in columns 2-3.  We wish to learn how
 many queries are correctly aligned, in whole or part.  We can do that
 as follows::
 
-  seg-join true.seg pred.seg |
-  awk '$4 == $6 && $5 == $7' |
+  seg-join -w true.seg pred.seg |
   cut -f4 |
   sort -u |
   wc -l
 
-This command: (1) joins the alignments, (2) selects joins with
-identical query names and coordinates, (3) cuts out the query name,
-(4) sorts and merges identical names, and (5) counts them.
+This command: (1) intersects the alignments, (2) cuts out the query
+name, (3) sorts and merges identical names, and (4) counts them.
 
 (In)completeness
 ----------------

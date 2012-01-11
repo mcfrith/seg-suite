@@ -22,7 +22,7 @@
 # Internally, this algorithm replaces the length (1st column) with the
 # end coordinate in the 1st sequence.
 
-import fileinput, itertools, optparse, os, signal, sys
+import fileinput, itertools, operator, optparse, os, signal, sys
 
 def segBeg(s): return s[1], s[2]  # seqName, begCoordinate
 
@@ -54,7 +54,21 @@ def segSliceTail(s, beg):
 def writeSegSlice(s, beg, end):
     writeTab(itertools.chain((end - beg, s[1], beg), segSliceTail(s, beg)))
 
-def overlappingSegs(querySeg, referenceSegs, keptSegs):
+def writeSegJoin(s, t, beg, end):
+    writeTab(itertools.chain((end - beg, s[1], beg), segSliceTail(s, beg),
+                             segSliceTail(t, beg)))
+
+def isSame(things):
+    """Are all the things the same?"""
+    g = itertools.groupby(things)
+    for i in g: break
+    for i in g: return False
+    return True
+
+def isOverlappable(s, t):
+    return s[3::2] == t[3::2] and isSame(map(operator.sub, s[2::2], t[2::2]))
+
+def overlappingSegs(querySeg, referenceSegs, keptSegs, isAll):
     beg = segBeg(querySeg)
     end = segEnd(querySeg)
     if not keptSegs or segBeg(keptSegs[-1]) < end:
@@ -64,13 +78,14 @@ def overlappingSegs(querySeg, referenceSegs, keptSegs):
     keptSegs[:] = [s for s in keptSegs if segEnd(s) > beg]
     for s in keptSegs:
         if segBeg(s) >= end: break
+        if isAll and not isOverlappable(querySeg, s): continue
         yield s
 
-def writeUnjoinableSegs(querySegs, referenceSegs, isComplete):
+def writeUnjoinableSegs(querySegs, referenceSegs, isComplete, isAll):
     keptSegs = []
     for i in querySegs:
         iend, iname, ibeg = i[:3]
-        for j in overlappingSegs(i, referenceSegs, keptSegs):
+        for j in overlappingSegs(i, referenceSegs, keptSegs, isAll):
             if isComplete: break
             jend, jname, jbeg = j[:3]
             if jbeg > ibeg: writeSegSlice(i, ibeg, jbeg)
@@ -78,28 +93,27 @@ def writeUnjoinableSegs(querySegs, referenceSegs, isComplete):
         else:
             if iend > ibeg: writeSegSlice(i, ibeg, iend)
 
-def writeJoinedSegs(sortedSegs1, sortedSegs2, isComplete1, isComplete2):
+def writeJoinedSegs(sortedSegs1, sortedSegs2, isComplete1, isComplete2, isAll):
     keptSegs = []
     for i in sortedSegs1:
         iend, iname, ibeg = i[:3]
-        for j in overlappingSegs(i, sortedSegs2, keptSegs):
+        for j in overlappingSegs(i, sortedSegs2, keptSegs, isAll):
             jend, jname, jbeg = j[:3]
             if isComplete1 and (ibeg < jbeg or iend > jend): continue
             if isComplete2 and (jbeg < ibeg or jend > iend): continue
             beg = max(ibeg, jbeg)
             end = min(iend, jend)
-            writeTab(itertools.chain((end - beg, iname, beg),
-                                     segSliceTail(i, beg),
-                                     segSliceTail(j, beg)))
+            if isAll: writeSegSlice(i, beg, end)
+            else: writeSegJoin(i, j, beg, end)
 
 def segJoin(opts, args):
     x = sortedSegInput(fileinput.input(args[0]))
     y = sortedSegInput(fileinput.input(args[1]))
     isComplete1 = 1 in opts.c
     isComplete2 = 2 in opts.c
-    if   1 in opts.v: writeUnjoinableSegs(x, y, isComplete1)
-    elif 2 in opts.v: writeUnjoinableSegs(y, x, isComplete2)
-    else:             writeJoinedSegs(x, y, isComplete1, isComplete2)
+    if   1 in opts.v: writeUnjoinableSegs(x, y, isComplete1, opts.w)
+    elif 2 in opts.v: writeUnjoinableSegs(y, x, isComplete2, opts.w)
+    else:             writeJoinedSegs(x, y, isComplete1, isComplete2, opts.w)
 
 if __name__ == "__main__":
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
@@ -113,6 +127,12 @@ if __name__ == "__main__":
     op.add_option("-v", type="int", action="append", default=[],
                   metavar="FILENUM",
                   help="only write unjoinable parts of file FILENUM")
+    op.add_option("-w", action="store_true",
+                  help="join on whole segment-tuples, not just first segments")
+    # Is "w" the best option letter?
+    # "a" (all): unix join uses it for something else.
+    # "i" (intersect): GNU join uses it for "ignore case".
+    # "f" (full): "full join" has a different technical meaning in SQL.
     opts, args = op.parse_args()
 
     for i in opts.c:

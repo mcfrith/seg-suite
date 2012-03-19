@@ -102,6 +102,23 @@ def importPsl(lines):
             qStart = segStartFromMafStart(int(k), strand, qSize)
             printTab(i, tName, j, qName, qStart)
 
+def importGenePred(lines):
+    for line in lines:
+        w = line.split()  # would it be better to split on tabs?
+        if not w: continue
+        if w[2] not in "+-": w.pop(0)  # allow for extra 1st column
+        name = w[0]
+        chrom = w[1]
+        strand = w[2]
+        exonBegs = map(int, pslSplit(w[8]))
+        exonEnds = map(int, pslSplit(w[9]))
+        exonLens = map(operator.sub, exonEnds, exonBegs)
+        if strand == "+": pos = 0
+        else:             pos = -sum(exonLens)
+        for i, j in zip(exonBegs, exonLens):
+            printTab(j, chrom, i, name, pos)
+            pos += j
+
 def cigarPieces(cigarString):
     for k, v in itertools.groupby(cigarString, str.isdigit):
         s = "".join(v)
@@ -136,20 +153,22 @@ def importSam(lines):
             if k != "D": qpos += n
 
 def segImport(opts, args):
-    formatName = args[0]
+    formatName = args[0].lower()
     lines = fileinput.input(args[1:])
     if   formatName == "bed": importBed(lines)
+    elif formatName == "genepred": importGenePred(lines)
     elif formatName == "gff": importGff(lines)
     elif formatName == "maf": importMaf(lines)
     elif formatName == "psl": importPsl(lines)
     elif formatName == "sam": importSam(lines)
-    else: raise Exception("unknown format: " + formatName)
+    else: raise Exception("unknown format: " + args[0])
 
 if __name__ == "__main__":
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
 
     usage = """
   %prog bed inputFile(s)
+  %prog genePred inputFile(s)
   %prog gff inputFile(s)
   %prog maf inputFile(s)
   %prog psl inputFile(s)

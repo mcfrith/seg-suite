@@ -23,6 +23,23 @@ def importBed(lines):
         if len(w) > 5 and w[5] == "-": beg = -end  # it's on the minus strand
         printTab(size, chrom, beg)
 
+def importChain(lines):
+    for line in lines:
+        w = line.split()
+        if line.startswith("#"):
+            continue
+        elif line.startswith("chain"):
+            tName, tSize, tStrand, tStart = w[2], int(w[3]), w[4], int(w[5])
+            tPos = segStartFromMafStart(tStart, tStrand, tSize)
+            qName, qSize, qStrand, qStart = w[7], int(w[8]), w[9], int(w[10])
+            qPos = segStartFromMafStart(qStart, qStrand, qSize)
+        elif w:
+            size = int(w[0])
+            printTab(size, tName, tPos, qName, qPos)
+            if len(w) == 3:
+                tPos += size + int(w[1])
+                qPos += size + int(w[2])
+
 def importGff(lines):
     for line in lines:
         w = line.split()  # XXX tabs?
@@ -156,6 +173,7 @@ def segImport(opts, args):
     formatName = args[0].lower()
     lines = fileinput.input(args[1:])
     if   formatName == "bed": importBed(lines)
+    elif formatName == "chain": importChain(lines)
     elif formatName == "genepred": importGenePred(lines)
     elif formatName == "gff": importGff(lines)
     elif formatName == "maf": importMaf(lines)
@@ -168,6 +186,7 @@ if __name__ == "__main__":
 
     usage = """
   %prog bed inputFile(s)
+  %prog chain inputFile(s)
   %prog genePred inputFile(s)
   %prog gff inputFile(s)
   %prog maf inputFile(s)

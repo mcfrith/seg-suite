@@ -58,6 +58,24 @@ perform a conversion, run it like this::
 
   seg-import maf myAlignments.maf > myAlignments.seg
 
+Many of the input formats are described at
+http://genome.ucsc.edu/FAQ/FAQformat.html.
+
+Details:
+
+* The format name (first argument to seg-import) is not case
+  sensitive.
+
+* For genePred format: versions of this format with or without an
+  extra first column are both OK.  The extended version is also OK
+  (and the extended information is not used).
+
+There is one option:
+
+-c  This option only affects genePred format, and it causes seg-import
+    to just get CDS (coding) exon parts.  Without this option, it gets
+    all of the exons without regard to CDS.
+
 seg-join
 --------
 

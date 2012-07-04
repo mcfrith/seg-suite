@@ -119,7 +119,7 @@ def importPsl(lines):
             qStart = segStartFromMafStart(int(k), strand, qSize)
             printTab(i, tName, j, qName, qStart)
 
-def importGenePred(lines):
+def importGenePred(lines, isCds):
     for line in lines:
         w = line.split()  # would it be better to split on tabs?
         if not w: continue
@@ -132,9 +132,19 @@ def importGenePred(lines):
         exonLens = map(operator.sub, exonEnds, exonBegs)
         if strand == "+": pos = 0
         else:             pos = -sum(exonLens)
-        for i, j in zip(exonBegs, exonLens):
-            printTab(j, chrom, i, name, pos)
-            pos += j
+        if isCds:
+            cdsBeg = int(w[5])
+            cdsEnd = int(w[6])
+            for i, j, k in zip(exonBegs, exonEnds, exonLens):
+                beg = max(i, cdsBeg)
+                end = min(j, cdsEnd)
+                if beg < end:
+                    printTab(end - beg, chrom, beg, name, pos + beg - i)
+                pos += k
+        else:
+            for i, j in zip(exonBegs, exonLens):
+                printTab(j, chrom, i, name, pos)
+                pos += j
 
 def cigarPieces(cigarString):
     for k, v in itertools.groupby(cigarString, str.isdigit):
@@ -174,7 +184,7 @@ def segImport(opts, args):
     lines = fileinput.input(args[1:])
     if   formatName == "bed": importBed(lines)
     elif formatName == "chain": importChain(lines)
-    elif formatName == "genepred": importGenePred(lines)
+    elif formatName == "genepred": importGenePred(lines, opts.c)
     elif formatName == "gff": importGff(lines)
     elif formatName == "maf": importMaf(lines)
     elif formatName == "psl": importPsl(lines)
@@ -187,7 +197,7 @@ if __name__ == "__main__":
     usage = """
   %prog bed inputFile(s)
   %prog chain inputFile(s)
-  %prog genePred inputFile(s)
+  %prog [-c] genePred inputFile(s)
   %prog gff inputFile(s)
   %prog maf inputFile(s)
   %prog psl inputFile(s)
@@ -195,6 +205,8 @@ if __name__ == "__main__":
 
     description = "Read segments or alignments in various formats, and write them in SEG format."
     op = optparse.OptionParser(usage=usage, description=description)
+    op.add_option("-c", action="store_true",
+                  help="get CDS (coding regions) only")
     opts, args = op.parse_args()
 
     if len(args) < 1:

@@ -4,6 +4,14 @@ seg-suite
 The seg suite provides tools for manipulating segments and alignments.
 It uses a format called "seg".
 
+Installation
+------------
+
+Optionally, you can copy the programs into your personal "bin"
+directory, by entering the seg-suite directory and typing::
+
+  make install bindir=~/bin
+
 Description of seg format
 -------------------------
 

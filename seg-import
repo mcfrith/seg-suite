@@ -119,7 +119,7 @@ def importPsl(lines):
             qStart = segStartFromMafStart(int(k), strand, qSize)
             printTab(i, tName, j, qName, qStart)
 
-def importGenePred(lines, isCds):
+def importGenePred(lines, isCds, isIntron):
     for line in lines:
         w = line.split()  # would it be better to split on tabs?
         if not w: continue
@@ -129,6 +129,12 @@ def importGenePred(lines, isCds):
         strand = w[2]
         exonBegs = map(int, pslSplit(w[8]))
         exonEnds = map(int, pslSplit(w[9]))
+        if isIntron:
+            if strand == "+": origin = exonBegs[0]
+            else:             origin = exonEnds[-1]
+            for i, j in zip(exonEnds[:-1], exonBegs[1:]):
+                printTab(j - i, chrom, i, name, i - origin)
+            continue
         exonLens = map(operator.sub, exonEnds, exonBegs)
         if strand == "+": pos = 0
         else:             pos = -sum(exonLens)
@@ -184,7 +190,7 @@ def segImport(opts, args):
     lines = fileinput.input(args[1:])
     if   formatName == "bed": importBed(lines)
     elif formatName == "chain": importChain(lines)
-    elif formatName == "genepred": importGenePred(lines, opts.c)
+    elif formatName == "genepred": importGenePred(lines, opts.c, opts.i)
     elif formatName == "gff": importGff(lines)
     elif formatName == "maf": importMaf(lines)
     elif formatName == "psl": importPsl(lines)
@@ -197,7 +203,7 @@ if __name__ == "__main__":
     usage = """
   %prog bed inputFile(s)
   %prog chain inputFile(s)
-  %prog [-c] genePred inputFile(s)
+  %prog [-c | -i] genePred inputFile(s)
   %prog gff inputFile(s)
   %prog maf inputFile(s)
   %prog psl inputFile(s)
@@ -206,8 +212,13 @@ if __name__ == "__main__":
     description = "Read segments or alignments in various formats, and write them in SEG format."
     op = optparse.OptionParser(usage=usage, description=description)
     op.add_option("-c", action="store_true",
-                  help="get CDS (coding regions) only")
+                  help="get CDS (coding regions)")
+    op.add_option("-i", action="store_true",
+                  help="get introns")
     opts, args = op.parse_args()
+
+    if opts.c and opts.i:
+        op.error("can't combine options -c and -i")
 
     if len(args) < 1:
         op.error("please give me a format and some data")

@@ -78,11 +78,14 @@ Details:
   extra first column are both OK.  The extended version is also OK
   (and the extended information is not used).
 
-There is one option:
+These options are available:
 
 -c  This option only affects genePred format, and it causes seg-import
     to just get CDS (coding) exon parts.  Without this option, it gets
     all of the exons without regard to CDS.
+
+-i  This option only affects genePred format, and it causes seg-import
+    to get introns instead of exons.
 
 seg-join
 --------

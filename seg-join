@@ -120,7 +120,9 @@ if __name__ == "__main__":
 
     usage = "%prog [options] file1.seg file2.seg"
     description = "Read two SEG files, and write their JOIN."
-    op = optparse.OptionParser(usage=usage, description=description)
+    epilog = "Report bugs to: seg-suite (ATmark) cbrc (dot) jp"
+    op = optparse.OptionParser(usage=usage, description=description,
+                               epilog=epilog)
     op.add_option("-c", type="int", action="append", default=[],
                   metavar="FILENUM",
                   help="only use complete/contained records of file FILENUM")

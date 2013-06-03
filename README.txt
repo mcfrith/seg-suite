@@ -7,10 +7,13 @@ It uses a format called "seg".
 Installation
 ------------
 
-Optionally, you can copy the programs into your personal "bin"
-directory, by entering the seg-suite directory and typing::
+Optionally, you can copy the programs to a standard "bin" directory::
 
-  make install bindir=~/bin
+  sudo make install
+
+Or copy them to your personal ~/bin directory::
+
+  make install prefix=~
 
 Description of seg format
 -------------------------

@@ -133,6 +133,8 @@ def importGenePred(lines, opts):
         name = w[0]
         chrom = w[1]
         strand = w[2]
+        cdsBeg = int(w[5])
+        cdsEnd = int(w[6])
         exonBegs = map(int, pslSplit(w[8]))
         exonEnds = map(int, pslSplit(w[9]))
         if opts.i:
@@ -142,8 +144,6 @@ def importGenePred(lines, opts):
         if strand == "+": pos = 0
         else:             pos = -sum(exonLens)
         if opts.c:
-            cdsBeg = int(w[5])
-            cdsEnd = int(w[6])
             for i, j, k in zip(exonBegs, exonEnds, exonLens):
                 beg = max(i, cdsBeg)
                 end = min(j, cdsEnd)

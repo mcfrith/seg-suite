@@ -136,6 +136,16 @@ def printExons(chrom, name, strand, exonBegs, exonEnds, printBeg, printEnd):
             printTab(end - beg, chrom, beg, name, pos + beg - b)
         pos += e - b
 
+def getGene(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts):
+    if opts.i:
+        printIntrons(chrom, name, strand, exonBegs, exonEnds)
+    elif opts.c:
+        printExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd)
+    else:
+        minBeg = exonBegs[0]
+        maxEnd = exonEnds[-1]
+        printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, maxEnd)
+
 def importGenePred(lines, opts):
     for line in lines:
         w = line.split()  # would it be better to split on tabs?
@@ -148,15 +158,7 @@ def importGenePred(lines, opts):
         cdsEnd = int(w[6])
         exonBegs = map(int, pslSplit(w[8]))
         exonEnds = map(int, pslSplit(w[9]))
-        if opts.i:
-            printIntrons(chrom, name, strand, exonBegs, exonEnds)
-            continue
-        if opts.c:
-            printExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd)
-        else:
-            minBeg = exonBegs[0]
-            maxEnd = exonEnds[-1]
-            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, maxEnd)
+        getGene(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts)
 
 def cigarPieces(cigarString):
     for k, v in itertools.groupby(cigarString, str.isdigit):

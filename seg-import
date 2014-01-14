@@ -133,8 +133,7 @@ def printIntrons(chrom, name, strand, exonBegs, exonEnds):
     for i, j in zip(exonEnds[:-1], exonBegs[1:]):
         printTab(j - i, chrom, i, name, i - origin)
 
-def printExons(chrom, name, strand, exonBegs, exonEnds, printBeg, printEnd):
-    exonRanges = zip(exonBegs, exonEnds)
+def printExons(chrom, name, strand, exonRanges, printBeg, printEnd):
     if strand == "+": pos = 0
     else:             pos = sum(b - e for b, e in exonRanges)  # negative
     for b, e in exonRanges:
@@ -154,25 +153,26 @@ def getExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts):
         isEndUtr = opts.utr5
     minBeg = exonBegs[0]
     maxEnd = exonEnds[-1]
+    exonRanges = zip(exonBegs, exonEnds)
     if opts.c:
         if isBegUtr and isEndUtr:
-            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, maxEnd)
+            printExons(chrom, name, strand, exonRanges, minBeg, maxEnd)
         elif isBegUtr:
-            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, cdsEnd)
+            printExons(chrom, name, strand, exonRanges, minBeg, cdsEnd)
         elif isEndUtr:
-            printExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, maxEnd)
+            printExons(chrom, name, strand, exonRanges, cdsBeg, maxEnd)
         else:
-            printExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd)
+            printExons(chrom, name, strand, exonRanges, cdsBeg, cdsEnd)
     else:
         if isBegUtr and isEndUtr:
-            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, cdsBeg)
-            printExons(chrom, name, strand, exonBegs, exonEnds, cdsEnd, maxEnd)
+            printExons(chrom, name, strand, exonRanges, minBeg, cdsBeg)
+            printExons(chrom, name, strand, exonRanges, cdsEnd, maxEnd)
         elif isBegUtr:
-            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, cdsBeg)
+            printExons(chrom, name, strand, exonRanges, minBeg, cdsBeg)
         elif isEndUtr:
-            printExons(chrom, name, strand, exonBegs, exonEnds, cdsEnd, maxEnd)
+            printExons(chrom, name, strand, exonRanges, cdsEnd, maxEnd)
         else:
-            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, maxEnd)
+            printExons(chrom, name, strand, exonRanges, minBeg, maxEnd)
 
 def getGene(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts):
     if opts.p:

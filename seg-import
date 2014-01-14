@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# Copyright 2011, 2012 Martin C. Frith
+# Copyright 2011, 2012, 2014 Martin C. Frith
 
 # Read segments or alignments in various formats, and write them in
 # SEG format.

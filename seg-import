@@ -125,6 +125,17 @@ def printIntrons(chrom, name, strand, exonBegs, exonEnds):
     for i, j in zip(exonEnds[:-1], exonBegs[1:]):
         printTab(j - i, chrom, i, name, i - origin)
 
+def printExons(chrom, name, strand, exonBegs, exonEnds, printBeg, printEnd):
+    exonRanges = zip(exonBegs, exonEnds)
+    if strand == "+": pos = 0
+    else:             pos = sum(b - e for b, e in exonRanges)  # negative
+    for b, e in exonRanges:
+        beg = max(b, printBeg)
+        end = min(e, printEnd)
+        if beg < end:
+            printTab(end - beg, chrom, beg, name, pos + beg - b)
+        pos += e - b
+
 def importGenePred(lines, opts):
     for line in lines:
         w = line.split()  # would it be better to split on tabs?
@@ -140,20 +151,12 @@ def importGenePred(lines, opts):
         if opts.i:
             printIntrons(chrom, name, strand, exonBegs, exonEnds)
             continue
-        exonLens = map(operator.sub, exonEnds, exonBegs)
-        if strand == "+": pos = 0
-        else:             pos = -sum(exonLens)
         if opts.c:
-            for i, j, k in zip(exonBegs, exonEnds, exonLens):
-                beg = max(i, cdsBeg)
-                end = min(j, cdsEnd)
-                if beg < end:
-                    printTab(end - beg, chrom, beg, name, pos + beg - i)
-                pos += k
+            printExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd)
         else:
-            for i, j in zip(exonBegs, exonLens):
-                printTab(j, chrom, i, name, pos)
-                pos += j
+            minBeg = exonBegs[0]
+            maxEnd = exonEnds[-1]
+            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, maxEnd)
 
 def cigarPieces(cigarString):
     for k, v in itertools.groupby(cigarString, str.isdigit):

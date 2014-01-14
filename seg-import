@@ -119,6 +119,12 @@ def importPsl(lines):
             qStart = segStartFromMafStart(int(k), strand, qSize)
             printTab(i, tName, j, qName, qStart)
 
+def printIntrons(chrom, name, strand, exonBegs, exonEnds):
+    if strand == "+": origin = exonBegs[0]
+    else:             origin = exonEnds[-1]
+    for i, j in zip(exonEnds[:-1], exonBegs[1:]):
+        printTab(j - i, chrom, i, name, i - origin)
+
 def importGenePred(lines, opts):
     for line in lines:
         w = line.split()  # would it be better to split on tabs?
@@ -130,10 +136,7 @@ def importGenePred(lines, opts):
         exonBegs = map(int, pslSplit(w[8]))
         exonEnds = map(int, pslSplit(w[9]))
         if opts.i:
-            if strand == "+": origin = exonBegs[0]
-            else:             origin = exonEnds[-1]
-            for i, j in zip(exonEnds[:-1], exonBegs[1:]):
-                printTab(j - i, chrom, i, name, i - origin)
+            printIntrons(chrom, name, strand, exonBegs, exonEnds)
             continue
         exonLens = map(operator.sub, exonEnds, exonBegs)
         if strand == "+": pos = 0

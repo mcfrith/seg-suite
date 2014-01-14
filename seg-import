@@ -160,6 +160,44 @@ def importGenePred(lines, opts):
         exonEnds = map(int, pslSplit(w[9]))
         getGene(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts)
 
+def gtfTranscriptId(attributesString):
+    for i in attributesString.rstrip().rstrip(";").split("; "):
+        t, v = i.split()
+        if t == "transcript_id":
+            return v.strip('"')
+    raise Exception("missing transcript_id: " + attributesString)
+
+def importGtf(lines, opts):
+    records = []
+    for line in lines:
+        data = line.split("#")[0]
+        w = data.split(None, 8)  # XXX tabs?
+        if not w: continue
+        chrom = w[0]
+        feature = w[2]
+        beg = int(w[3]) - 1  # convert from 1-based to 0-based coordinate
+        end = int(w[4])
+        strand = w[6]
+        name = gtfTranscriptId(w[8])
+        k = name, chrom, strand
+        record = k, feature, beg, end
+        records.append(record)
+    records.sort()
+    for k, v in itertools.groupby(records, operator.itemgetter(0)):
+        name, chrom, strand = k
+        v = list(v)
+        exons = [i for i in v if i[1] == "exon"]
+        exonBegs = [i[2] for i in exons]
+        exonEnds = [i[3] for i in exons]
+        cds = [i for i in v if i[1] in ("start_codon", "stop_codon")]
+        if cds:
+            cdsBeg = min(i[2] for i in cds)
+            cdsEnd = max(i[3] for i in cds)
+        else:
+            cdsBeg = 0
+            cdsEnd = 0
+        getGene(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts)
+
 def cigarPieces(cigarString):
     for k, v in itertools.groupby(cigarString, str.isdigit):
         s = "".join(v)
@@ -200,6 +238,7 @@ def segImport(opts, args):
     elif formatName == "chain": importChain(lines)
     elif formatName == "genepred": importGenePred(lines, opts)
     elif formatName == "gff": importGff(lines)
+    elif formatName == "gtf": importGtf(lines, opts)
     elif formatName == "maf": importMaf(lines)
     elif formatName == "psl": importPsl(lines)
     elif formatName == "sam": importSam(lines)
@@ -213,6 +252,7 @@ if __name__ == "__main__":
   %prog chain inputFile(s)
   %prog [-c | -i] genePred inputFile(s)
   %prog gff inputFile(s)
+  %prog [-c | -i] gtf inputFile(s)
   %prog maf inputFile(s)
   %prog psl inputFile(s)
   %prog sam inputFile(s)"""

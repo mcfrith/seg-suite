@@ -81,14 +81,13 @@ Details:
   extra first column are both OK.  The extended version is also OK
   (and the extended information is not used).
 
-These options are available:
+These options are available, which affect genePred and gtf formats
+only.  For these formats, the default is to get the exons.
 
--c  This option only affects genePred format, and it causes seg-import
-    to just get CDS (coding) exon parts.  Without this option, it gets
-    all of the exons without regard to CDS.
+-c  Get coding regions (CDS).  For gtf format, this includes start and
+    stop codons.
 
--i  This option only affects genePred format, and it causes seg-import
-    to get introns instead of exons.
+-i  Get introns.
 
 seg-join
 --------

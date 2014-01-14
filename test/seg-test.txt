@@ -4,6 +4,7 @@ Usage:
   seg-import chain inputFile(s)
   seg-import [-c | -i] genePred inputFile(s)
   seg-import gff inputFile(s)
+  seg-import [-c | -i] gtf inputFile(s)
   seg-import maf inputFile(s)
   seg-import psl inputFile(s)
   seg-import sam inputFile(s)

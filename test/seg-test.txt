@@ -17,6 +17,7 @@ Options:
   -5          get 5' untranslated regions (UTRs)
   -3          get 3' untranslated regions (UTRs)
   -i          get introns
+  -p          get primary transcripts (exons plus introns)
 
 # TEST seg-import genePred hg19refGene.txt
 757	chr13	50571142	NM_213590	0

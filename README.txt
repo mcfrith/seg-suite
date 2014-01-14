@@ -93,6 +93,8 @@ only.  For these formats, the default is to get the exons.
 
 -i  Get introns.
 
+-p  Get primary transcripts (exons plus introns).
+
 seg-join
 --------
 

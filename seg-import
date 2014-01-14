@@ -119,6 +119,14 @@ def importPsl(lines):
             qStart = segStartFromMafStart(int(k), strand, qSize)
             printTab(i, tName, j, qName, qStart)
 
+def printPrimaryTranscript(chrom, name, strand, exonBegs, exonEnds):
+    beg = exonBegs[0]
+    end = exonEnds[-1]
+    size = end - beg
+    if strand == "+": pos = 0
+    else:             pos = -size
+    printTab(size, chrom, beg, name, pos)
+
 def printIntrons(chrom, name, strand, exonBegs, exonEnds):
     if strand == "+": origin = exonBegs[0]
     else:             origin = exonEnds[-1]
@@ -167,7 +175,9 @@ def getExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts):
             printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, maxEnd)
 
 def getGene(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts):
-    if opts.i:
+    if opts.p:
+        printPrimaryTranscript(chrom, name, strand, exonBegs, exonEnds)
+    elif opts.i:
         printIntrons(chrom, name, strand, exonBegs, exonEnds)
     else:
         getExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts)
@@ -293,10 +303,14 @@ if __name__ == "__main__":
                   help="get 3' untranslated regions (UTRs)")
     op.add_option("-i", action="store_true",
                   help="get introns")
+    op.add_option("-p", action="store_true",
+                  help="get primary transcripts (exons plus introns)")
     opts, args = op.parse_args()
 
-    if opts.i and (opts.c or opts.utr5 or opts.utr3):
-        op.error("can't combine option -i with any other option")
+    if opts.i and (opts.p or opts.c or opts.utr5 or opts.utr3):
+        op.error("can't combine option -i or -p with any other option")
+    if opts.p and (opts.i or opts.c or opts.utr5 or opts.utr3):
+        op.error("can't combine option -i or -p with any other option")
 
     if len(args) < 1:
         op.error("please give me a format and some data")

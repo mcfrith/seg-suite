@@ -87,6 +87,10 @@ only.  For these formats, the default is to get the exons.
 -c  Get coding regions (CDS).  For gtf format, this includes start and
     stop codons.
 
+-5  Get 5' untranslated regions (UTRs).
+
+-3  Get 3' untranslated regions (UTRs).
+
 -i  Get introns.
 
 seg-join

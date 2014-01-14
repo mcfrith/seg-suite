@@ -2,9 +2,9 @@
 Usage: 
   seg-import bed inputFile(s)
   seg-import chain inputFile(s)
-  seg-import [-c | -i] genePred inputFile(s)
+  seg-import [options] genePred inputFile(s)
   seg-import gff inputFile(s)
-  seg-import [-c | -i] gtf inputFile(s)
+  seg-import [options] gtf inputFile(s)
   seg-import maf inputFile(s)
   seg-import psl inputFile(s)
   seg-import sam inputFile(s)
@@ -14,6 +14,8 @@ Read segments or alignments in various formats, and write them in SEG format.
 Options:
   -h, --help  show this help message and exit
   -c          get CDS (coding regions)
+  -5          get 5' untranslated regions (UTRs)
+  -3          get 3' untranslated regions (UTRs)
   -i          get introns
 
 # TEST seg-import genePred hg19refGene.txt

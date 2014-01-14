@@ -137,12 +137,34 @@ def printExons(chrom, name, strand, exonBegs, exonEnds, printBeg, printEnd):
         pos += e - b
 
 def getExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts):
+    if cdsBeg >= cdsEnd and (opts.utr5 or opts.utr3): return
+    if strand == "+":
+        isBegUtr = opts.utr5
+        isEndUtr = opts.utr3
+    else:
+        isBegUtr = opts.utr3
+        isEndUtr = opts.utr5
     minBeg = exonBegs[0]
     maxEnd = exonEnds[-1]
     if opts.c:
-        printExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd)
+        if isBegUtr and isEndUtr:
+            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, maxEnd)
+        elif isBegUtr:
+            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, cdsEnd)
+        elif isEndUtr:
+            printExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, maxEnd)
+        else:
+            printExons(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd)
     else:
-        printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, maxEnd)
+        if isBegUtr and isEndUtr:
+            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, cdsBeg)
+            printExons(chrom, name, strand, exonBegs, exonEnds, cdsEnd, maxEnd)
+        elif isBegUtr:
+            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, cdsBeg)
+        elif isEndUtr:
+            printExons(chrom, name, strand, exonBegs, exonEnds, cdsEnd, maxEnd)
+        else:
+            printExons(chrom, name, strand, exonBegs, exonEnds, minBeg, maxEnd)
 
 def getGene(chrom, name, strand, exonBegs, exonEnds, cdsBeg, cdsEnd, opts):
     if opts.i:
@@ -254,9 +276,9 @@ if __name__ == "__main__":
     usage = """
   %prog bed inputFile(s)
   %prog chain inputFile(s)
-  %prog [-c | -i] genePred inputFile(s)
+  %prog [options] genePred inputFile(s)
   %prog gff inputFile(s)
-  %prog [-c | -i] gtf inputFile(s)
+  %prog [options] gtf inputFile(s)
   %prog maf inputFile(s)
   %prog psl inputFile(s)
   %prog sam inputFile(s)"""
@@ -265,12 +287,16 @@ if __name__ == "__main__":
     op = optparse.OptionParser(usage=usage, description=description)
     op.add_option("-c", action="store_true",
                   help="get CDS (coding regions)")
+    op.add_option("-5", action="store_true", dest="utr5",
+                  help="get 5' untranslated regions (UTRs)")
+    op.add_option("-3", action="store_true", dest="utr3",
+                  help="get 3' untranslated regions (UTRs)")
     op.add_option("-i", action="store_true",
                   help="get introns")
     opts, args = op.parse_args()
 
-    if opts.c and opts.i:
-        op.error("can't combine options -c and -i")
+    if opts.i and (opts.c or opts.utr5 or opts.utr3):
+        op.error("can't combine option -i with any other option")
 
     if len(args) < 1:
         op.error("please give me a format and some data")

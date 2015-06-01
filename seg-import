@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# Copyright 2011, 2012, 2014 Martin C. Frith
+# Copyright 2011, 2012, 2014, 2015 Martin C. Frith
 
 # Read segments or alignments in various formats, and write them in
 # SEG format.
@@ -252,6 +252,8 @@ def importSam(lines):
         flag = int(w[1])
         if flag & 4: continue
         qname = w[0]
+        if   flag &  64: qname += "/1"
+        elif flag & 128: qname += "/2"
         rname = w[2]
         rpos = int(w[3]) - 1  # convert from 1-based to 0-based coordinate
         pieces = list(cigarPieces(w[5]))

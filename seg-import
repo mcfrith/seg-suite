@@ -65,7 +65,7 @@ def isGapless(column):
     return "-" not in column
 
 def sequenceSpan(seq):  # in future, maybe allow for translated alignments
-    return sum(i != "-" for i in seq)
+    return len(seq) - seq.count("-")  # tuple count needs python >= 2.6
 
 def isTranslatedMaf(seq, size):
     return "\\" in seq or "/" in seq or sequenceSpan(seq) < size
@@ -87,15 +87,17 @@ def importMaf(lines):
         if True in map(isTranslatedMaf, alignmentRows, sizes):
             raise Exception("translated DNA is not supported")
         starts = map(segStartFromMafStart, starts, strands, seqLengths)
-        alignmentCols = zip(*alignmentRows)
+        alignmentCols = itertools.izip(*alignmentRows)  # faster than zip
         # It would be more general to group by which sequences have gaps:
         for b, c in itertools.groupby(alignmentCols, isGapless):
-            r = zip(*c)
-            spans = map(sequenceSpan, r)
             if b:
-                length = spans[0]
+                length = len(list(c))  # faster than sum(1 for _ in c)
                 printTab(length, *itertools.chain(*zip(seqNames, starts)))
-            starts = map(operator.add, starts, spans)
+                starts = [i + length for i in starts]
+            else:
+                r = zip(*c)
+                spans = map(sequenceSpan, r)
+                starts = map(operator.add, starts, spans)
 
 def pslSplit(s):
     return s.rstrip(",").split(",")

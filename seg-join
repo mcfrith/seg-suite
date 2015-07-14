@@ -35,8 +35,8 @@ def segEnd(s): return s[1], s[0]  # seqName, endCoordinate
 def sortedSegInput(lines):
     oldSortKey = "", 0
     for line in lines:
-        if line.startswith("#") or line.isspace(): continue
         s = line.split()
+        if line[0] == "#" or not s: continue
         # Should we skip lines where the first word is not a number?
         for i in range(0, len(s), 2):
             s[i] = int(s[i])

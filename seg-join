@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# Copyright 2011 Martin C. Frith
+# Copyright 2011, 2015 Martin C. Frith
 
 # Read two files of SEG data, and write their JOIN.
 

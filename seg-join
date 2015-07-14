@@ -22,7 +22,11 @@
 # Internally, this algorithm replaces the length (1st column) with the
 # end coordinate in the 1st sequence.
 
-import fileinput, itertools, operator, optparse, os, signal, sys
+import itertools, operator, optparse, os, signal, sys
+
+def myOpen(fileName):  # faster than fileinput
+    if fileName == "-": return sys.stdin
+    else:               return open(fileName)
 
 def segBeg(s): return s[1], s[2]  # seqName, begCoordinate
 
@@ -107,8 +111,8 @@ def writeJoinedSegs(sortedSegs1, sortedSegs2, isComplete1, isComplete2, isAll):
             else: writeSegJoin(i, j, beg, end)
 
 def segJoin(opts, args):
-    x = sortedSegInput(fileinput.input(args[0]))
-    y = sortedSegInput(fileinput.input(args[1]))
+    x = sortedSegInput(myOpen(args[0]))
+    y = sortedSegInput(myOpen(args[1]))
     isComplete1 = 1 in opts.c
     isComplete2 = 2 in opts.c
     if   1 in opts.v: writeUnjoinableSegs(x, y, isComplete1, opts.w)

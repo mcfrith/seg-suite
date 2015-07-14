@@ -247,9 +247,13 @@ def cigarPieces(cigarString):
             elif s in "ISH": yield "I", n
 
 def importSam(lines):
+    groupby = itertools.groupby
+    itemgetter = operator.itemgetter
+    write = sys.stdout.write
+
     for line in lines:
-        if line.startswith("@"): continue
-        w = line.split()  # XXX tabs?
+        if line[0] == "@": continue
+        w = line.split(None, 6)  # XXX tabs?
         if not w: continue
         flag = int(w[1])
         if flag & 4: continue
@@ -258,16 +262,19 @@ def importSam(lines):
         elif flag & 128: qname += "/2"
         rname = w[2]
         rpos = int(w[3]) - 1  # convert from 1-based to 0-based coordinate
-        pieces = list(cigarPieces(w[5]))
+        pieces = cigarPieces(w[5])
 
-        qlen = sum(j for i, j in pieces if i != "D")
+        if flag & 16:  # it's a reverse-strand alignment
+            pieces = list(pieces)
+            qpos = -sum(j for i, j in pieces if i != "D")
+        else:
+            qpos = 0
 
-        qpos = 0
-        if flag & 16: qpos = -qlen  # it's a reverse-strand alignment
-
-        for k, v in itertools.groupby(pieces, operator.itemgetter(0)):
+        for k, v in groupby(pieces, itemgetter(0)):
             n = sum(j for i, j in v)
-            if k == "M": printTab(n, rname, rpos, qname, qpos)
+            if k == "M":
+                out = str(n), rname, str(rpos), qname, str(qpos)
+                write("\t".join(out) + "\n")
             if k != "I": rpos += n
             if k != "D": qpos += n
 

@@ -47,20 +47,24 @@ def sortedSegInput(lines):
         oldSortKey = newSortKey
         yield s
 
-def writeTab(things): print "\t".join(map(str, things))
+def segSliceHead(s, beg, end):
+    sys.stdout.write(str(end - beg) + "\t" + s[1] + "\t" + str(beg))
 
 def segSliceTail(s, beg):
     offset = beg - s[2]
     for i in range(3, len(s), 2):
-        yield s[i]
-        yield s[i+1] + offset
+        sys.stdout.write("\t" + s[i] + "\t" + str(s[i+1] + offset))
 
 def writeSegSlice(s, beg, end):
-    writeTab(itertools.chain((end - beg, s[1], beg), segSliceTail(s, beg)))
+    segSliceHead(s, beg, end)
+    segSliceTail(s, beg)
+    sys.stdout.write("\n")
 
 def writeSegJoin(s, t, beg, end):
-    writeTab(itertools.chain((end - beg, s[1], beg), segSliceTail(s, beg),
-                             segSliceTail(t, beg)))
+    segSliceHead(s, beg, end)
+    segSliceTail(s, beg)
+    segSliceTail(t, beg)
+    sys.stdout.write("\n")
 
 def isSame(things):
     """Are all the things the same?"""

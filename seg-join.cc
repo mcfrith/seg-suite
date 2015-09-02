@@ -3,6 +3,7 @@
 #include <getopt.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <cstdlib>
 #include <exception>
 #include <fstream>
@@ -42,6 +43,14 @@ static void err(const std::string& s) {
   throw std::runtime_error(s);
 }
 
+static bool isGraph(char c) {
+  return c > ' ';  // faster than std::isgraph
+}
+
+static bool isSpace(char c) {
+  return c > 0 && c <= ' ';  // faster than std::isspace
+}
+
 static bool isChar(const char *myString, char myChar) {
   return myString[0] == myChar && myString[1] == 0;
 }
@@ -53,10 +62,30 @@ static std::istream &openIn(const char *fileName, std::ifstream &ifs) {
   return ifs;
 }
 
+static const char *readLong(const char *c, long &x) {
+  if (!c) return 0;
+  errno = 0;
+  char *e;
+  long z = std::strtol(c, &e, 10);
+  if (e == c || errno == ERANGE) return 0;
+  x = z;
+  return e;
+}
+
+static const char *readWord(const char *c, std::string &s) {
+  if (!c) return 0;
+  while (isSpace(*c)) ++c;
+  const char *e = c;
+  while (isGraph(*e)) ++e;
+  if (e == c) return 0;
+  s.assign(c, e);
+  return e;
+}
+
 static bool isDataLine(const char *s) {
   for ( ; ; ++s) {
     if (*s == '#') return false;
-    if (*s > ' ') return true;
+    if (isGraph(*s)) return true;
     if (*s == 0) return false;
   }
 }
@@ -71,12 +100,15 @@ static bool getDataLine(std::istream &in, std::string &line) {
 static bool readSeg(std::istream &in, Seg &s) {
   std::string line;
   if (!getDataLine(in, line)) return false;
-  std::istringstream iss(line);
-  iss >> s.length;
+  const char *c = line.c_str();
+  c = readLong(c, s.length);
   std::string seqName;
   long start;
-  while (iss >> seqName) {
-    if (!(iss >> start)) err("bad SEG line: " + line);
+  while (true) {
+    c = readWord(c, seqName);
+    if (!c) break;
+    c = readLong(c, start);
+    if (!c) err("bad SEG line: " + line);
     s.seqNames.push_back(seqName);
     s.starts.push_back(start);
   }

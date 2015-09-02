@@ -1,18 +1,16 @@
 # ugh, got to keep these up to date:
 progs = seg-import seg-join seg-merge seg-sort seg-swap
-texts = COPYING.txt README.txt ChangeLog.txt
-
-distdir = seg-suite-`hg id -n`
 
 README.html: README.txt
-	rst2html README.txt > README.html
+	rst2html README.txt > $@
 
 log:
 	hg log --style changelog > ChangeLog.txt
 
+distdir = seg-suite-`hg id -n`
 dist: README.html log
 	mkdir ${distdir}
-	cp ${progs} Makefile ${texts} README.html ${distdir}
+	cp ${progs} Makefile *.txt *.html ${distdir}
 	zip -qrm ${distdir} ${distdir}
 
 prefix = /usr/local

@@ -7,6 +7,14 @@ It uses a format called "seg".
 Installation
 ------------
 
+You need to have a C++ compiler. On Linux, you might need to install a
+package called "g++". On Mac, you might need to install command-line
+developer tools. On Windows, you might need to install Cygwin.
+
+Using the command line, go into the seg-suite directory, and type::
+
+  make
+
 Optionally, you can copy the programs to a standard "bin" directory::
 
   sudo make install

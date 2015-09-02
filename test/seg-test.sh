@@ -3,12 +3,13 @@
 # Tests for seg-suite
 
 try () {
-    echo "# TEST" $@
-    $@
+    echo "# TEST" "$@"
+    eval "$@"
     echo
 }
 
-cd $(dirname $0)
+d=$(dirname "$0")
+cd "$d"
 
 PATH=..:$PATH
 
@@ -24,5 +25,23 @@ PATH=..:$PATH
     try seg-import -c gtf sp.gtf
     try seg-import -i gtf sp.gtf
     try seg-import -5 -3 gtf sp.gtf
+
+    try seg-join hg38Yrg.seg hg38Yaln3.seg
+    try seg-join -c1 hg38Ycgi.seg hg38Yrg.seg
+    try seg-join -c2 hg38Ycgi.seg hg38Yrg.seg
+    try seg-join -v1 hg38Ycgi.seg hg38Yrg.seg
+    try seg-join -v1 -c1 hg38Ycgi.seg hg38Yrg.seg
+    try seg-join -v2 hg38Yaln3.seg hg38Ycgi.seg
+    try seg-join -w hg38Yrg.seg hg38Yrg2.seg
+    try seg-join -w -v2 hg38Yrg.seg hg38Yrg2.seg
+    try seg-join -w -c1 -c2 hg38Yrg.seg hg38Yrg2.seg
+    try seg-join -w -v2 -c2 hg38Yrg.seg hg38Yrg2.seg
+    try seg-join -v1 cutqry.seg cutref.seg
+
+    try seg-swap hg38Yaln3.seg
+    try seg-swap -n3 hg38Yaln3.seg
+    try seg-swap -s hg38Yaln3.seg
+
+    try "cut -f-3 hg38Yrg.seg | seg-merge"
 } |
 diff -u seg-test.txt -

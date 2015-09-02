@@ -241,25 +241,23 @@ static void updateKeptSegs(std::vector<Seg> &keptSegs, SortedSegReader &r,
       keptSegs.erase(remove_if(keptSegs.begin(), keptSegs.end(),
 			       isOldSeg(ibeg)), keptSegs.end());
   }
-  while (r.isMore()) {
+  for ( ; r.isMore(); r.next()) {
     const Seg &t = r.get();
     const SegPart &t0 = t.parts[0];
     int c = wordCmp(s0.seqName, t0.seqName);
+    if (c > 0) continue;
     if (c < 0) break;
-    if (c == 0) {
-      long jbeg = t0.start;
-      if (jbeg >= iend) break;
-      long jend = jbeg + t.length;
-      if (jend > ibeg) keptSegs.push_back(t);
-    }
-    r.next();
+    long jbeg = t0.start;
+    if (jbeg >= iend) break;
+    long jend = jbeg + t.length;
+    if (jend > ibeg) keptSegs.push_back(t);
   }
 }
 
 static void writeUnjoinableSegs(SortedSegReader &querys, SortedSegReader &refs,
 				bool isComplete, bool isAll) {
   std::vector<Seg> keptSegs;
-  while (querys.isMore()) {
+  for ( ; querys.isMore(); querys.next()) {
     const Seg &s = querys.get();
     long ibeg = s.parts[0].start;
     long iend = ibeg + s.length;
@@ -278,14 +276,13 @@ static void writeUnjoinableSegs(SortedSegReader &querys, SortedSegReader &refs,
       if (jend > ibeg) ibeg = jend;
     }
     if (iend > ibeg) writeSegSlice(s, ibeg, iend);
-    querys.next();
   }
 }
 
 static void writeJoinedSegs(SortedSegReader &r1, SortedSegReader &r2,
 			    bool isComplete1, bool isComplete2, bool isAll) {
   std::vector<Seg> keptSegs;
-  while (r1.isMore()) {
+  for ( ; r1.isMore(); r1.next()) {
     const Seg &s = r1.get();
     long ibeg = s.parts[0].start;
     long iend = ibeg + s.length;
@@ -303,7 +300,6 @@ static void writeJoinedSegs(SortedSegReader &r1, SortedSegReader &r2,
       if (isAll) writeSegSlice(s, beg, end);
       else writeSegJoin(s, t, beg, end);
     }
-    r1.next();
   }
 }
 

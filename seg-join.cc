@@ -177,14 +177,14 @@ struct isOldSeg {
 
 static void updateKeptSegs(std::vector<Seg> &keptSegs, SortedSegReader &r,
 			   const Seg &s) {
+  keptSegs.erase(remove_if(keptSegs.begin(), keptSegs.end(), isOldSeg(s)),
+		 keptSegs.end());
   while (r.isMore()) {
     const Seg &t = r.get();
     if (!isBeforeEnd(t, s)) break;
-    keptSegs.push_back(t);
+    if (isBeforeEnd(s, t)) keptSegs.push_back(t);
     r.next();
   }
-  keptSegs.erase(remove_if(keptSegs.begin(), keptSegs.end(), isOldSeg(s)),
-		 keptSegs.end());
 }
 
 static void writeUnjoinableSegs(SortedSegReader &querys, SortedSegReader &refs,

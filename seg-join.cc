@@ -143,14 +143,6 @@ static bool isBeforeBeg(const Seg &x, const Seg &y) {
   return x0.start < y0.start;
 }
 
-static bool isBeforeEnd(const Seg &x, const Seg &y) {
-  const SegPart &x0 = x.parts[0];
-  const SegPart &y0 = y.parts[0];
-  int c = wordCmp(x0.seqName, y0.seqName);
-  if (c) return c < 0;
-  return x0.start < y0.start + y.length;
-}
-
 static bool readSeg(std::istream &in, Seg &s) {
   if (!getDataLine(in, s.line)) return false;
   const char *c = s.line.c_str();
@@ -229,19 +221,37 @@ static bool isOverlappable(const Seg &s, const Seg &t) {
 }
 
 struct isOldSeg {
-  isOldSeg(const Seg &sIn) : s(sIn) {}
-  bool operator()(const Seg &t) const { return !isBeforeEnd(s, t); }
-  const Seg &s;
+  isOldSeg(long ibegIn) : ibeg(ibegIn) {}
+  bool operator()(const Seg &t) const
+  { return t.parts[0].start + t.length <= ibeg; }
+  long ibeg;
 };
 
 static void updateKeptSegs(std::vector<Seg> &keptSegs, SortedSegReader &r,
 			   const Seg &s) {
-  keptSegs.erase(remove_if(keptSegs.begin(), keptSegs.end(), isOldSeg(s)),
-		 keptSegs.end());
+  const SegPart &s0 = s.parts[0];
+  long ibeg = s0.start;
+  long iend = ibeg + s.length;
+  if (keptSegs.size()) {
+    const Seg &t = keptSegs[0];
+    const SegPart &t0 = t.parts[0];
+    if (wordCmp(s0.seqName, t0.seqName))
+      keptSegs.clear();
+    else
+      keptSegs.erase(remove_if(keptSegs.begin(), keptSegs.end(),
+			       isOldSeg(ibeg)), keptSegs.end());
+  }
   while (r.isMore()) {
     const Seg &t = r.get();
-    if (!isBeforeEnd(t, s)) break;
-    if (isBeforeEnd(s, t)) keptSegs.push_back(t);
+    const SegPart &t0 = t.parts[0];
+    int c = wordCmp(s0.seqName, t0.seqName);
+    if (c < 0) break;
+    if (c == 0) {
+      long jbeg = t0.start;
+      if (jbeg >= iend) break;
+      long jend = jbeg + t.length;
+      if (jend > ibeg) keptSegs.push_back(t);
+    }
     r.next();
   }
 }
@@ -256,13 +266,13 @@ static void writeUnjoinableSegs(SortedSegReader &querys, SortedSegReader &refs,
     updateKeptSegs(keptSegs, refs, s);
     for (size_t j = 0; j < keptSegs.size(); ++j) {
       const Seg &t = keptSegs[j];
-      if (!isBeforeEnd(t, s)) break;
+      long jbeg = t.parts[0].start;
+      if (jbeg >= iend) break;
       if (isAll && !isOverlappable(s, t)) continue;
       if (isComplete) {
 	ibeg = iend;
 	break;
       }
-      long jbeg = t.parts[0].start;
       long jend = jbeg + t.length;
       if (jbeg > ibeg) writeSegSlice(s, ibeg, jbeg);
       if (jend > ibeg) ibeg = jend;
@@ -282,9 +292,9 @@ static void writeJoinedSegs(SortedSegReader &r1, SortedSegReader &r2,
     updateKeptSegs(keptSegs, r2, s);
     for (size_t j = 0; j < keptSegs.size(); ++j) {
       const Seg &t = keptSegs[j];
-      if (!isBeforeEnd(t, s)) break;
-      if (isAll && !isOverlappable(s, t)) continue;
       long jbeg = t.parts[0].start;
+      if (jbeg >= iend) break;
+      if (isAll && !isOverlappable(s, t)) continue;
       long jend = jbeg + t.length;
       if (isComplete1 && (ibeg < jbeg || iend > jend)) continue;
       if (isComplete2 && (jbeg < ibeg || jend > iend)) continue;

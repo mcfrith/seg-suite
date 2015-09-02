@@ -23,30 +23,6 @@ struct SegJoinOptions {
   const char *fileName2;
 };
 
-struct SegPart {
-  std::string seqName;
-  long start;
-};
-
-struct Seg {
-  long length;
-  std::vector<SegPart> parts;
-};
-
-static bool isBeforeBeg(const Seg &x, const Seg &y) {
-  const SegPart &x0 = x.parts[0];
-  const SegPart &y0 = y.parts[0];
-  if (x0.seqName != y0.seqName) return x0.seqName < y0.seqName;
-  return x0.start < y0.start;
-}
-
-static bool isBeforeEnd(const Seg &x, const Seg &y) {
-  const SegPart &x0 = x.parts[0];
-  const SegPart &y0 = y.parts[0];
-  if (x0.seqName != y0.seqName) return x0.seqName < y0.seqName;
-  return x0.start < y0.start + y.length;
-}
-
 static void err(const std::string& s) {
   throw std::runtime_error(s);
 }
@@ -103,6 +79,30 @@ static bool getDataLine(std::istream &in, std::string &line) {
     if (isDataLine(line.c_str()))
       return true;
   return false;
+}
+
+struct SegPart {
+  std::string seqName;
+  long start;
+};
+
+struct Seg {
+  long length;
+  std::vector<SegPart> parts;
+};
+
+static bool isBeforeBeg(const Seg &x, const Seg &y) {
+  const SegPart &x0 = x.parts[0];
+  const SegPart &y0 = y.parts[0];
+  if (x0.seqName != y0.seqName) return x0.seqName < y0.seqName;
+  return x0.start < y0.start;
+}
+
+static bool isBeforeEnd(const Seg &x, const Seg &y) {
+  const SegPart &x0 = x.parts[0];
+  const SegPart &y0 = y.parts[0];
+  if (x0.seqName != y0.seqName) return x0.seqName < y0.seqName;
+  return x0.start < y0.start + y.length;
 }
 
 static bool readSeg(std::istream &in, Seg &s) {

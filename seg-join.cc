@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+typedef const char *String;
+
 struct SegJoinOptions {
   bool isComplete1;
   bool isComplete2;
@@ -56,14 +58,30 @@ static const char *readLong(const char *c, long &x) {
   return e;
 }
 
-static const char *readWord(const char *c, std::string &s) {
+static const char *readWord(const char *c, String &s) {
   if (!c) return 0;
   while (isSpace(*c)) ++c;
   const char *e = c;
   while (isGraph(*e)) ++e;
   if (e == c) return 0;
-  s.assign(c, e);
+  s = c;
   return e;
+}
+
+static int wordCmp(const char* x, const char* y) {
+  // Like strcmp, but stops at spaces.
+  while (isGraph(*y)) {
+    if (*x != *y) return *x - *y;
+    ++x;
+    ++y;
+  }
+  return isGraph(*x);
+}
+
+static void writeWord(std::ostream &out, const char *c) {
+  const char *e = c;
+  while (isGraph(*e)) ++e;
+  out.write(c, e - c);
 }
 
 static bool isDataLine(const char *s) {
@@ -82,11 +100,12 @@ static bool getDataLine(std::istream &in, std::string &line) {
 }
 
 struct SegPart {
-  std::string seqName;
+  const char *seqName;
   long start;
 };
 
 struct Seg {
+  std::string line;
   long length;
   std::vector<SegPart> parts;
 };
@@ -94,31 +113,32 @@ struct Seg {
 static bool isBeforeBeg(const Seg &x, const Seg &y) {
   const SegPart &x0 = x.parts[0];
   const SegPart &y0 = y.parts[0];
-  if (x0.seqName != y0.seqName) return x0.seqName < y0.seqName;
+  int c = wordCmp(x0.seqName, y0.seqName);
+  if (c) return c < 0;
   return x0.start < y0.start;
 }
 
 static bool isBeforeEnd(const Seg &x, const Seg &y) {
   const SegPart &x0 = x.parts[0];
   const SegPart &y0 = y.parts[0];
-  if (x0.seqName != y0.seqName) return x0.seqName < y0.seqName;
+  int c = wordCmp(x0.seqName, y0.seqName);
+  if (c) return c < 0;
   return x0.start < y0.start + y.length;
 }
 
 static bool readSeg(std::istream &in, Seg &s) {
-  std::string line;
-  if (!getDataLine(in, line)) return false;
-  const char *c = line.c_str();
+  if (!getDataLine(in, s.line)) return false;
+  const char *c = s.line.c_str();
   c = readLong(c, s.length);
   SegPart p;
   while (true) {
     c = readWord(c, p.seqName);
     if (!c) break;
     c = readLong(c, p.start);
-    if (!c) err("bad SEG line: " + line);
+    if (!c) err("bad SEG line: " + s.line);
     s.parts.push_back(p);
   }
-  if (s.parts.empty()) err("bad SEG line: " + line);
+  if (s.parts.empty()) err("bad SEG line: " + s.line);
   return true;
 }
 
@@ -143,14 +163,18 @@ struct SortedSegReader {
 };
 
 static void segSliceHead(const Seg &s, long beg, long end) {
-  std::cout << (end - beg) << '\t' << s.parts[0].seqName << '\t' << beg;
+  std::cout << (end - beg) << '\t';
+  writeWord(std::cout, s.parts[0].seqName);
+  std::cout << '\t' << beg;
 }
 
 static void segSliceTail(const Seg &s, long beg) {
   long offset = beg - s.parts[0].start;
   for (size_t i = 1; i < s.parts.size(); ++i) {
     const SegPart &si = s.parts[i];
-    std::cout << '\t' << si.seqName << '\t' << (si.start + offset);
+    std::cout << '\t';
+    writeWord(std::cout, si.seqName);
+    std::cout << '\t' << (si.start + offset);
   }
 }
 
@@ -173,7 +197,7 @@ static bool isOverlappable(const Seg &s, const Seg &t) {
   for (size_t i = 1; i < s.parts.size(); ++i) {
     const SegPart &si = s.parts[i];
     const SegPart &ti = t.parts[i];
-    if (si.seqName != ti.seqName) return false;
+    if (wordCmp(si.seqName, ti.seqName)) return false;
     if (si.start - ti.start != d) return false;
   }
   return true;

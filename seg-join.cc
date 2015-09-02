@@ -3,7 +3,7 @@
 #include <getopt.h>
 
 #include <algorithm>
-#include <cerrno>
+#include <climits>
 #include <cstdlib>
 #include <exception>
 #include <fstream>
@@ -37,6 +37,10 @@ static bool isSpace(char c) {
   return c > 0 && c <= ' ';  // faster than std::isspace
 }
 
+static bool isDigit(char c) {
+  return c >= '0' && c <= '9';
+}
+
 static bool isChar(const char *myString, char myChar) {
   return myString[0] == myChar && myString[1] == 0;
 }
@@ -50,12 +54,33 @@ static std::istream &openIn(const char *fileName, std::ifstream &ifs) {
 
 static const char *readLong(const char *c, long &x) {
   if (!c) return 0;
-  errno = 0;
-  char *e;
-  long z = std::strtol(c, &e, 10);
-  if (e == c || errno == ERANGE) return 0;
-  x = z;
-  return e;
+  while (isSpace(*c)) ++c;
+  if (*c == '-') {
+    ++c;
+    if (!isDigit(*c)) return 0;
+    long z = '0' - *c++;
+    while (isDigit(*c)) {
+      if (z < LONG_MIN / 10) return 0;
+      z *= 10;
+      long digit = *c++ - '0';
+      if (z < LONG_MIN + digit) return 0;
+      z -= digit;
+    }
+    x = z;
+  } else {
+    // should we allow an initial '+'?
+    if (!isDigit(*c)) return 0;
+    long z = *c++ - '0';
+    while (isDigit(*c)) {
+      if (z > LONG_MAX / 10) return 0;
+      z *= 10;
+      long digit = *c++ - '0';
+      if (z > LONG_MAX - digit) return 0;
+      z += digit;
+    }
+    x = z;
+  }
+  return c;
 }
 
 static const char *readWord(const char *c, String &s) {

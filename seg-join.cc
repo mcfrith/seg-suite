@@ -8,7 +8,6 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <stddef.h>  // size_t
 #include <stdexcept>
 #include <string>
@@ -399,6 +398,8 @@ Options:\n\
 
   opts.fileName1 = argv[argc - 2];
   opts.fileName2 = argv[argc - 1];
+
+  std::ios_base::sync_with_stdio(false);  // makes it faster!
 
   segJoin(opts);
 }

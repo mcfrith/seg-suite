@@ -131,13 +131,13 @@ struct SegPart {
 
 struct Seg {
   std::string line;
-  long length;
+  long end0;  // end coordinate of the first segment
   std::vector<SegPart> parts;
 };
 
 static void moveSeg(Seg &from, Seg &to) {
   swap(from.line, to.line);
-  to.length = from.length;
+  to.end0 = from.end0;
   swap(from.parts, to.parts);
 }
 
@@ -159,7 +159,8 @@ static bool isBeforeBeg(const Seg &x, const Seg &y) {
 static bool readSeg(std::istream &in, Seg &s) {
   if (!getDataLine(in, s.line)) return false;
   const char *b = s.line.c_str();
-  const char *c = readLong(b, s.length);
+  long length;
+  const char *c = readLong(b, length);
   SegPart p;
   while (true) {
     const char *n;
@@ -171,6 +172,7 @@ static bool readSeg(std::istream &in, Seg &s) {
     s.parts.push_back(p);
   }
   if (s.parts.empty()) err("bad SEG line: " + s.line);
+  s.end0 = s.parts[0].start + length;
   return true;
 }
 
@@ -237,12 +239,11 @@ static void removeOldSegs(std::vector<Seg> &keptSegs, long ibeg) {
   size_t j = 0;
   for ( ; ; ++j) {
     if (j == end) return;
-    Seg &t = keptSegs[j];
-    if (t.parts[0].start + t.length <= ibeg) break;
+    if (keptSegs[j].end0 <= ibeg) break;
   }
   for (size_t k = j + 1; k < end; ++k) {
     Seg &t = keptSegs[k];
-    if (t.parts[0].start + t.length > ibeg)
+    if (t.end0 > ibeg)
       moveSeg(t, keptSegs[j++]);
   }
   keptSegs.resize(j);
@@ -251,7 +252,7 @@ static void removeOldSegs(std::vector<Seg> &keptSegs, long ibeg) {
 static void updateKeptSegs(std::vector<Seg> &keptSegs, SortedSegReader &r,
 			   const Seg &s) {
   long ibeg = s.parts[0].start;
-  long iend = ibeg + s.length;
+  long iend = s.end0;
   if (keptSegs.size()) {
     const Seg &t = keptSegs[0];
     if (nameCmp(s, t, 0))
@@ -266,7 +267,7 @@ static void updateKeptSegs(std::vector<Seg> &keptSegs, SortedSegReader &r,
     if (c < 0) break;
     long jbeg = t.parts[0].start;
     if (jbeg >= iend) break;
-    long jend = jbeg + t.length;
+    long jend = t.end0;
     if (jend > ibeg) keptSegs.push_back(t);
   }
 }
@@ -277,7 +278,7 @@ static void writeUnjoinableSegs(SortedSegReader &querys, SortedSegReader &refs,
   for ( ; querys.isMore(); querys.next()) {
     const Seg &s = querys.get();
     long ibeg = s.parts[0].start;
-    long iend = ibeg + s.length;
+    long iend = s.end0;
     updateKeptSegs(keptSegs, refs, s);
     for (size_t j = 0; j < keptSegs.size(); ++j) {
       const Seg &t = keptSegs[j];
@@ -288,7 +289,7 @@ static void writeUnjoinableSegs(SortedSegReader &querys, SortedSegReader &refs,
 	ibeg = iend;
 	break;
       }
-      long jend = jbeg + t.length;
+      long jend = t.end0;
       if (jbeg > ibeg) writeSegSlice(s, ibeg, jbeg);
       if (jend > ibeg) ibeg = jend;
     }
@@ -302,14 +303,14 @@ static void writeJoinedSegs(SortedSegReader &r1, SortedSegReader &r2,
   for ( ; r1.isMore(); r1.next()) {
     const Seg &s = r1.get();
     long ibeg = s.parts[0].start;
-    long iend = ibeg + s.length;
+    long iend = s.end0;
     updateKeptSegs(keptSegs, r2, s);
     for (size_t j = 0; j < keptSegs.size(); ++j) {
       const Seg &t = keptSegs[j];
       long jbeg = t.parts[0].start;
       if (jbeg >= iend) break;
       if (isAll && !isOverlappable(s, t)) continue;
-      long jend = jbeg + t.length;
+      long jend = t.end0;
       if (isComplete1 && (ibeg < jbeg || iend > jend)) continue;
       if (isComplete2 && (jbeg < ibeg || jend > iend)) continue;
       long beg = std::max(ibeg, jbeg);

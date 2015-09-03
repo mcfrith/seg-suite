@@ -135,6 +135,12 @@ struct Seg {
   std::vector<SegPart> parts;
 };
 
+static void moveSeg(Seg &from, Seg &to) {
+  swap(from.line, to.line);
+  to.length = from.length;
+  swap(from.parts, to.parts);
+}
+
 static int nameCmp(const Seg &x, const Seg &y, size_t part) {
   return wordCmp(x.line.c_str() + x.parts[part].seqNameBeg,
 		 y.line.c_str() + y.parts[part].seqNameBeg);
@@ -180,7 +186,7 @@ struct SortedSegReader {
     readSeg(in, t);
     if (!s.parts.empty() && !t.parts.empty() && isBeforeBeg(t, s))
       err("input not sorted properly");
-    s = t;
+    moveSeg(t, s);
   }
 
   std::ifstream ifs;
@@ -226,12 +232,21 @@ static bool isOverlappable(const Seg &s, const Seg &t) {
   return true;
 }
 
-struct isOldSeg {
-  isOldSeg(long ibegIn) : ibeg(ibegIn) {}
-  bool operator()(const Seg &t) const
-  { return t.parts[0].start + t.length <= ibeg; }
-  long ibeg;
-};
+static void removeOldSegs(std::vector<Seg> &keptSegs, long ibeg) {
+  size_t end = keptSegs.size();
+  size_t j = 0;
+  for ( ; ; ++j) {
+    if (j == end) return;
+    Seg &t = keptSegs[j];
+    if (t.parts[0].start + t.length <= ibeg) break;
+  }
+  for (size_t k = j + 1; k < end; ++k) {
+    Seg &t = keptSegs[k];
+    if (t.parts[0].start + t.length > ibeg)
+      moveSeg(t, keptSegs[j++]);
+  }
+  keptSegs.resize(j);
+}
 
 static void updateKeptSegs(std::vector<Seg> &keptSegs, SortedSegReader &r,
 			   const Seg &s) {
@@ -242,8 +257,7 @@ static void updateKeptSegs(std::vector<Seg> &keptSegs, SortedSegReader &r,
     if (nameCmp(s, t, 0))
       keptSegs.clear();
     else
-      keptSegs.erase(remove_if(keptSegs.begin(), keptSegs.end(),
-			       isOldSeg(ibeg)), keptSegs.end());
+      removeOldSegs(keptSegs, ibeg);
   }
   for ( ; r.isMore(); r.next()) {
     const Seg &t = r.get();

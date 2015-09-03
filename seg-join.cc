@@ -125,7 +125,7 @@ static bool getDataLine(std::istream &in, std::string &line) {
 }
 
 struct SegPart {
-  const char *seqName;
+  size_t seqNameBeg;
   long start;
 };
 
@@ -135,22 +135,31 @@ struct Seg {
   std::vector<SegPart> parts;
 };
 
+static int nameCmp(const Seg &x, const Seg &y, size_t part) {
+  return wordCmp(x.line.c_str() + x.parts[part].seqNameBeg,
+		 y.line.c_str() + y.parts[part].seqNameBeg);
+}
+
+static void writeName(const Seg &s, size_t part) {
+  writeWord(std::cout, s.line.c_str() + s.parts[part].seqNameBeg);
+}
+
 static bool isBeforeBeg(const Seg &x, const Seg &y) {
-  const SegPart &x0 = x.parts[0];
-  const SegPart &y0 = y.parts[0];
-  int c = wordCmp(x0.seqName, y0.seqName);
+  int c = nameCmp(x, y, 0);
   if (c) return c < 0;
-  return x0.start < y0.start;
+  return x.parts[0].start < y.parts[0].start;
 }
 
 static bool readSeg(std::istream &in, Seg &s) {
   if (!getDataLine(in, s.line)) return false;
-  const char *c = s.line.c_str();
-  c = readLong(c, s.length);
+  const char *b = s.line.c_str();
+  const char *c = readLong(b, s.length);
   SegPart p;
   while (true) {
-    c = readWord(c, p.seqName);
+    const char *n;
+    c = readWord(c, n);
     if (!c) break;
+    p.seqNameBeg = n - b;
     c = readLong(c, p.start);
     if (!c) err("bad SEG line: " + s.line);
     s.parts.push_back(p);
@@ -181,17 +190,16 @@ struct SortedSegReader {
 
 static void segSliceHead(const Seg &s, long beg, long end) {
   std::cout << (end - beg) << '\t';
-  writeWord(std::cout, s.parts[0].seqName);
+  writeName(s, 0);
   std::cout << '\t' << beg;
 }
 
 static void segSliceTail(const Seg &s, long beg) {
   long offset = beg - s.parts[0].start;
   for (size_t i = 1; i < s.parts.size(); ++i) {
-    const SegPart &si = s.parts[i];
     std::cout << '\t';
-    writeWord(std::cout, si.seqName);
-    std::cout << '\t' << (si.start + offset);
+    writeName(s, i);
+    std::cout << '\t' << (s.parts[i].start + offset);
   }
 }
 
@@ -212,10 +220,8 @@ static bool isOverlappable(const Seg &s, const Seg &t) {
   if (s.parts.size() != t.parts.size()) return false;
   long d = s.parts[0].start - t.parts[0].start;
   for (size_t i = 1; i < s.parts.size(); ++i) {
-    const SegPart &si = s.parts[i];
-    const SegPart &ti = t.parts[i];
-    if (wordCmp(si.seqName, ti.seqName)) return false;
-    if (si.start - ti.start != d) return false;
+    if (nameCmp(s, t, i)) return false;
+    if (s.parts[i].start - t.parts[i].start != d) return false;
   }
   return true;
 }
@@ -229,13 +235,11 @@ struct isOldSeg {
 
 static void updateKeptSegs(std::vector<Seg> &keptSegs, SortedSegReader &r,
 			   const Seg &s) {
-  const SegPart &s0 = s.parts[0];
-  long ibeg = s0.start;
+  long ibeg = s.parts[0].start;
   long iend = ibeg + s.length;
   if (keptSegs.size()) {
     const Seg &t = keptSegs[0];
-    const SegPart &t0 = t.parts[0];
-    if (wordCmp(s0.seqName, t0.seqName))
+    if (nameCmp(s, t, 0))
       keptSegs.clear();
     else
       keptSegs.erase(remove_if(keptSegs.begin(), keptSegs.end(),
@@ -243,11 +247,10 @@ static void updateKeptSegs(std::vector<Seg> &keptSegs, SortedSegReader &r,
   }
   for ( ; r.isMore(); r.next()) {
     const Seg &t = r.get();
-    const SegPart &t0 = t.parts[0];
-    int c = wordCmp(s0.seqName, t0.seqName);
+    int c = nameCmp(s, t, 0);
     if (c > 0) continue;
     if (c < 0) break;
-    long jbeg = t0.start;
+    long jbeg = t.parts[0].start;
     if (jbeg >= iend) break;
     long jend = jbeg + t.length;
     if (jend > ibeg) keptSegs.push_back(t);

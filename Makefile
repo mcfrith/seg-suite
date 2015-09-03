@@ -24,8 +24,10 @@ FORCE:
 clean:
 	rm -f ${binaries}
 
+# Ugh!  Is there a better way?
+RST_CSS = `locate html4css1.css | tail -n1`
 README.html: README.txt
-	rst2html README.txt > $@
+	rst2html --stylesheet=${RST_CSS},seg-suite.css README.txt > $@
 
 log:
 	hg log --style changelog > ChangeLog.txt

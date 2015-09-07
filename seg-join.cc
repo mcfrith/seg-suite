@@ -82,6 +82,21 @@ static const char *readLong(const char *c, long &x) {
   return c;
 }
 
+static char *writeLong(char *dest, long x) {
+  unsigned long y = x;
+  if (x < 0) {
+    *dest++ = '-';
+    y = -y;
+  }
+  char *start = dest;
+  do {
+    *dest++ = '0' + y % 10;
+    y /= 10;
+  } while (y);
+  std::reverse(start, dest);
+  return dest;
+}
+
 static const char *readWord(const char *c, String &s) {
   if (!c) return 0;
   while (isSpace(*c)) ++c;
@@ -196,9 +211,16 @@ struct SortedSegReader {
 };
 
 static void segSliceHead(const Seg &s, long beg, long end) {
-  std::cout << (end - beg) << '\t';
+  char buffer[32];
+  char *dest = buffer;
+  dest = writeLong(dest, end - beg);
+  *dest++ = '\t';
+  std::cout.write(buffer, dest - buffer);
   writeName(s, 0);
-  std::cout << '\t' << beg;
+  dest = buffer;
+  *dest++ = '\t';
+  dest = writeLong(dest, beg);
+  std::cout.write(buffer, dest - buffer);
 }
 
 static void segSliceTail(const Seg &s, long beg) {
@@ -206,7 +228,11 @@ static void segSliceTail(const Seg &s, long beg) {
   for (size_t i = 1; i < s.parts.size(); ++i) {
     std::cout << '\t';
     writeName(s, i);
-    std::cout << '\t' << (s.parts[i].start + offset);
+    char buffer[32];
+    char *dest = buffer;
+    *dest++ = '\t';
+    dest = writeLong(dest, s.parts[i].start + offset);
+    std::cout.write(buffer, dest - buffer);
   }
 }
 

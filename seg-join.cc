@@ -117,10 +117,9 @@ static int wordCmp(const char* x, const char* y) {
   return isGraph(*x);
 }
 
-static void writeWord(std::ostream &out, const char *c) {
-  const char *e = c;
-  while (isGraph(*e)) ++e;
-  out.write(c, e - c);
+static char *writeWord(char *dest, const char *c) {
+  while (isGraph(*c)) *dest++ = *c++;
+  return dest;
 }
 
 static bool isDataLine(const char *s) {
@@ -160,8 +159,8 @@ static int nameCmp(const Seg &x, const Seg &y, size_t part) {
 		 y.line.c_str() + y.parts[part].seqNameBeg);
 }
 
-static void writeName(const Seg &s, size_t part) {
-  writeWord(std::cout, s.line.c_str() + s.parts[part].seqNameBeg);
+static char *writeName(char *dest, const Seg &s, size_t part) {
+  return writeWord(dest, s.line.c_str() + s.parts[part].seqNameBeg);
 }
 
 static bool isBeforeBeg(const Seg &x, const Seg &y) {
@@ -210,43 +209,47 @@ struct SortedSegReader {
   Seg s, t;
 };
 
-static void segSliceHead(const Seg &s, long beg, long end) {
-  char buffer[32];
-  char *dest = buffer;
+static char *segSliceHead(char *dest, const Seg &s, long beg, long end) {
   dest = writeLong(dest, end - beg);
   *dest++ = '\t';
-  std::cout.write(buffer, dest - buffer);
-  writeName(s, 0);
-  dest = buffer;
+  dest = writeName(dest, s, 0);
   *dest++ = '\t';
   dest = writeLong(dest, beg);
-  std::cout.write(buffer, dest - buffer);
+  return dest;
 }
 
-static void segSliceTail(const Seg &s, long beg) {
+static char *segSliceTail(char *dest, const Seg &s, long beg) {
   long offset = beg - s.parts[0].start;
   for (size_t i = 1; i < s.parts.size(); ++i) {
-    std::cout << '\t';
-    writeName(s, i);
-    char buffer[32];
-    char *dest = buffer;
+    *dest++ = '\t';
+    dest = writeName(dest, s, i);
     *dest++ = '\t';
     dest = writeLong(dest, s.parts[i].start + offset);
-    std::cout.write(buffer, dest - buffer);
   }
+  return dest;
 }
 
 static void writeSegSlice(const Seg &s, long beg, long end) {
-  segSliceHead(s, beg, end);
-  segSliceTail(s, beg);
-  std::cout << '\n';
+  size_t maxChangedStarts = s.parts.size();
+  size_t space = s.line.size() + 32 * maxChangedStarts;
+  std::vector<char> buffer(space);
+  char *b = &buffer[0];
+  char *c = segSliceHead(b, s, beg, end);
+  c = segSliceTail(c, s, beg);
+  *c++ = '\n';
+  std::cout.write(b, c - b);
 }
 
 static void writeSegJoin(const Seg &s, const Seg &t, long beg, long end) {
-  segSliceHead(s, beg, end);
-  segSliceTail(s, beg);
-  segSliceTail(t, beg);
-  std::cout << '\n';
+  size_t maxChangedStarts = std::max(s.parts.size(), t.parts.size()) - 1;
+  size_t space = s.line.size() + t.line.size() + 32 * maxChangedStarts;
+  std::vector<char> buffer(space);
+  char *b = &buffer[0];
+  char *c = segSliceHead(b, s, beg, end);
+  c = segSliceTail(c, s, beg);
+  c = segSliceTail(c, t, beg);
+  *c++ = '\n';
+  std::cout.write(b, c - b);
 }
 
 static bool isOverlappable(const Seg &s, const Seg &t) {

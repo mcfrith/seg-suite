@@ -156,6 +156,7 @@ static bool isBeforeBeg(const Seg &x, const Seg &y) {
 }
 
 static bool readSeg(std::istream &in, Seg &s) {
+  s.parts.clear();
   if (!getDataLine(in, s.line)) return false;
   const char *b = s.line.c_str();
   long length;
@@ -183,7 +184,6 @@ struct SortedSegReader {
   const Seg &get() const { return s; }
 
   void next() {
-    Seg t;
     readSeg(in, t);
     if (!s.parts.empty() && !t.parts.empty() && isBeforeBeg(t, s))
       err("input not sorted properly");
@@ -192,7 +192,7 @@ struct SortedSegReader {
 
   std::ifstream ifs;
   std::istream& in;
-  Seg s;
+  Seg s, t;
 };
 
 static void segSliceHead(const Seg &s, long beg, long end) {

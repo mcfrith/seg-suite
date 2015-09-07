@@ -35,7 +35,7 @@ log:
 distdir = seg-suite-`hg id -n`
 dist: README.html log version.hh
 	mkdir ${distdir}
-	cp ${scripts} *.cc *.hh Makefile *.txt README.html ${distdir}
+	cp ${scripts} *.cc *.hh Makefile *.txt README.html *.css ${distdir}
 	zip -qrm ${distdir} ${distdir}
 
 prefix = /usr/local

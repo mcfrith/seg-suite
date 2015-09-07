@@ -229,10 +229,12 @@ static char *segSliceTail(char *dest, const Seg &s, long beg) {
   return dest;
 }
 
+std::vector<char> buffer;
+
 static void writeSegSlice(const Seg &s, long beg, long end) {
   size_t maxChangedStarts = s.parts.size();
   size_t space = s.line.size() + 32 * maxChangedStarts;
-  std::vector<char> buffer(space);
+  buffer.resize(space);
   char *b = &buffer[0];
   char *c = segSliceHead(b, s, beg, end);
   c = segSliceTail(c, s, beg);
@@ -243,7 +245,7 @@ static void writeSegSlice(const Seg &s, long beg, long end) {
 static void writeSegJoin(const Seg &s, const Seg &t, long beg, long end) {
   size_t maxChangedStarts = std::max(s.parts.size(), t.parts.size()) - 1;
   size_t space = s.line.size() + t.line.size() + 32 * maxChangedStarts;
-  std::vector<char> buffer(space);
+  buffer.resize(space);
   char *b = &buffer[0];
   char *c = segSliceHead(b, s, beg, end);
   c = segSliceTail(c, s, beg);

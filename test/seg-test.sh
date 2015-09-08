@@ -32,6 +32,8 @@ PATH=..:$PATH
     try seg-import -i gtf sp.gtf
     try seg-import -5 -3 gtf sp.gtf
 
+    try seg-import lasttab a-top.tab
+
     try seg-import maf a-top.maf
 
     try seg-import psl hg19-refSeqAli100.psl

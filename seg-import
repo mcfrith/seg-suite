@@ -53,6 +53,42 @@ def importGff(lines):
         if strand == "-": beg = -end
         printTab(size, seqname, beg)
 
+def lastTabData(seqName, beg, span, strand, seqLength):
+    beg = int(beg)
+    if strand == "-": beg -= int(seqLength)
+    return seqName, beg, beg + int(span)
+
+def importLastTab(lines):
+    write = sys.stdout.write
+    alnNum = 0
+    for line in lines:
+        w = line.split()
+        if not w: continue
+        if w[0][0] == "#": continue
+        rName, rBeg, rEnd = lastTabData(*w[1:6])
+        qName, qBeg, qEnd = lastTabData(*w[6:11])
+        aln = str(alnNum)
+        alnPos = 0
+        for b in w[11].split(","):
+            i = b.find(":")
+            if i == -1:
+                out = b, rName, str(rBeg), qName, str(qBeg), aln, str(alnPos)
+                write("\t".join(out) + "\n")
+                size = int(b)
+                rBeg += size
+                qBeg += size
+                alnPos += size
+            else:
+                j = i + 1
+                rInc = int(b[:i])
+                qInc = int(b[j:])
+                rBeg += rInc
+                qBeg += qInc
+                alnPos += rInc + qInc
+        if rBeg != rEnd or qBeg != qEnd:  # catches translated alignments
+            raise Exception("failed on this line:\n" + line)
+        alnNum += 1
+
 def segStartFromMafStart(mafStart, strand, seqLength):
     """MAF start coordinate --> SEG start coordinate."""
     if strand == "-": return mafStart - seqLength
@@ -292,6 +328,7 @@ def segImport(opts, args):
     elif formatName == "genepred": importGenePred(lines, opts)
     elif formatName == "gff": importGff(lines)
     elif formatName == "gtf": importGtf(lines, opts)
+    elif formatName == "lasttab": importLastTab(lines)
     elif formatName == "maf": importMaf(lines)
     elif formatName == "psl": importPsl(lines)
     elif formatName == "sam": importSam(lines)
@@ -306,6 +343,7 @@ if __name__ == "__main__":
   %prog [options] genePred inputFile(s)
   %prog gff inputFile(s)
   %prog [options] gtf inputFile(s)
+  %prog lastTab inputFile(s)
   %prog maf inputFile(s)
   %prog psl inputFile(s)
   %prog sam inputFile(s)"""

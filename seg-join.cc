@@ -84,19 +84,17 @@ static const char *readLong(const char *c, long &x) {
   return c;
 }
 
-static char *writeLong(char *dest, long x) {
+// This writes a "long" integer into a char buffer ending at "end".
+// It writes backwards from the end, because that's easier & faster.
+static char *writeLong(char *end, long x) {
   unsigned long y = x;
-  if (x < 0) {
-    *dest++ = '-';
-    y = -y;
-  }
-  char *start = dest;
+  if (x < 0) y = -y;
   do {
-    *dest++ = '0' + y % 10;
+    *--end = '0' + y % 10;
     y /= 10;
   } while (y);
-  std::reverse(start, dest);
-  return dest;
+  if (x < 0) *--end = '-';
+  return end;
 }
 
 static const char *readWord(const char *c, String &s) {
@@ -163,10 +161,11 @@ static int nameCmp(const Seg &x, const Seg &y, size_t part) {
   return c ? c : xp.seqNameLen - yp.seqNameLen;
 }
 
-static char *writeName(char *dest, const Seg &s, size_t part) {
+static char *writeName(char *end, const Seg &s, size_t part) {
   const SegPart &p = s.parts[part];
-  std::memcpy(dest, s.line.c_str() + p.seqNameBeg, p.seqNameLen);
-  return dest + p.seqNameLen;
+  end -= p.seqNameLen;
+  std::memcpy(end, s.line.c_str() + p.seqNameBeg, p.seqNameLen);
+  return end;
 }
 
 static bool readSeg(std::istream &in, Seg &s) {
@@ -219,24 +218,24 @@ struct SortedSegReader {
   bool isNewSeq;
 };
 
-static char *segSliceHead(char *dest, const Seg &s, long beg, long end) {
-  dest = writeLong(dest, end - beg);
-  *dest++ = '\t';
-  dest = writeName(dest, s, 0);
-  *dest++ = '\t';
-  dest = writeLong(dest, beg);
-  return dest;
+static char *segSliceHead(char *e, const Seg &s, long beg, long end) {
+  e = writeLong(e, beg);
+  *--e = '\t';
+  e = writeName(e, s, 0);
+  *--e = '\t';
+  e = writeLong(e, end - beg);
+  return e;
 }
 
-static char *segSliceTail(char *dest, const Seg &s, long beg) {
+static char *segSliceTail(char *e, const Seg &s, long beg) {
   long offset = beg - beg0(s);
-  for (size_t i = 1; i < s.parts.size(); ++i) {
-    *dest++ = '\t';
-    dest = writeName(dest, s, i);
-    *dest++ = '\t';
-    dest = writeLong(dest, segBeg(s, i) + offset);
+  for (size_t i = s.parts.size(); i --> 1; ) {
+    e = writeLong(e, segBeg(s, i) + offset);
+    *--e = '\t';
+    e = writeName(e, s, i);
+    *--e = '\t';
   }
-  return dest;
+  return e;
 }
 
 std::vector<char> buffer;
@@ -245,23 +244,25 @@ static void writeSegSlice(const Seg &s, long beg, long end) {
   size_t maxChangedStarts = s.parts.size();
   size_t space = s.line.size() + 32 * maxChangedStarts;
   buffer.resize(space);
-  char *b = &buffer[0];
-  char *c = segSliceHead(b, s, beg, end);
-  c = segSliceTail(c, s, beg);
-  *c++ = '\n';
-  std::cout.write(b, c - b);
+  char *bufferEnd = &buffer.back() + 1;
+  char *e = bufferEnd;
+  *--e = '\n';
+  e = segSliceTail(e, s, beg);
+  e = segSliceHead(e, s, beg, end);
+  std::cout.write(e, bufferEnd - e);
 }
 
 static void writeSegJoin(const Seg &s, const Seg &t, long beg, long end) {
   size_t maxChangedStarts = std::max(s.parts.size(), t.parts.size()) - 1;
   size_t space = s.line.size() + t.line.size() + 32 * maxChangedStarts;
   buffer.resize(space);
-  char *b = &buffer[0];
-  char *c = segSliceHead(b, s, beg, end);
-  c = segSliceTail(c, s, beg);
-  c = segSliceTail(c, t, beg);
-  *c++ = '\n';
-  std::cout.write(b, c - b);
+  char *bufferEnd = &buffer.back() + 1;
+  char *e = bufferEnd;
+  *--e = '\n';
+  e = segSliceTail(e, t, beg);
+  e = segSliceTail(e, s, beg);
+  e = segSliceHead(e, s, beg, end);
+  std::cout.write(e, bufferEnd - e);
 }
 
 static bool isOverlappable(const Seg &s, const Seg &t) {

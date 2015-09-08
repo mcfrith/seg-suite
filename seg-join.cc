@@ -168,12 +168,6 @@ static char *writeName(char *dest, const Seg &s, size_t part) {
   return dest + p.seqNameLen;
 }
 
-static bool isBeforeBeg(const Seg &x, const Seg &y) {
-  int c = nameCmp(x, y, 0);
-  if (c) return c < 0;
-  return beg0(x) < beg0(y);
-}
-
 static bool readSeg(std::istream &in, Seg &s) {
   s.parts.clear();
   if (!getDataLine(in, s.line)) return false;
@@ -201,18 +195,27 @@ struct SortedSegReader {
 
   bool isMore() const { return !s.parts.empty(); }
 
+  bool isNewSeqName() const { return isNewSeq; }
+
   const Seg &get() const { return s; }
 
   void next() {
     readSeg(in, t);
-    if (!s.parts.empty() && !t.parts.empty() && isBeforeBeg(t, s))
-      err("input not sorted properly");
+    if (s.parts.empty() || t.parts.empty()) {
+      isNewSeq = true;
+    } else {
+      int c = nameCmp(s, t, 0);
+      if (c > 0 || (c == 0 && beg0(s) > beg0(t)))
+	err("input not sorted properly");
+      isNewSeq = c;
+    }
     moveSeg(t, s);
   }
 
   std::ifstream ifs;
   std::istream& in;
   Seg s, t;
+  bool isNewSeq;
 };
 
 static char *segSliceHead(char *dest, const Seg &s, long beg, long end) {

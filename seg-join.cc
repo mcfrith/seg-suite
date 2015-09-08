@@ -3,6 +3,7 @@
 #include <getopt.h>
 
 #include <algorithm>
+#include <cassert>
 #include <climits>
 #include <cstdlib>
 #include <cstring>
@@ -288,27 +289,56 @@ static void removeOldSegs(std::vector<Seg> &keptSegs, long ibeg) {
   keptSegs.resize(j);
 }
 
+static int newNameCmp(const Seg &s, const SortedSegReader &r) {
+  return r.isMore() ? nameCmp(s, r.get(), 0) : -1;
+}
+
+static void skipOneSequence(SortedSegReader &r) {
+  do {
+    r.next();
+  } while (!r.isNewSeqName());
+}
+
 static void updateKeptSegs(std::vector<Seg> &keptSegs, SortedSegReader &r,
-			   const Seg &s) {
+			   const SortedSegReader &q) {
+  const Seg &s = q.get();
   long ibeg = beg0(s);
   long iend = end0(s);
-  if (keptSegs.size()) {
-    const Seg &t = keptSegs[0];
-    if (nameCmp(s, t, 0))
-      keptSegs.clear();
-    else
-      removeOldSegs(keptSegs, ibeg);
+
+  if (q.isNewSeqName()) {
+    keptSegs.clear();
+    if (r.isNewSeqName()) {
+      while (true) {
+	int c = newNameCmp(s, r);
+	if (c < 0) return;
+	if (c == 0) break;
+	skipOneSequence(r);
+      }
+    } else {
+      while (true) {
+	skipOneSequence(r);
+	int c = newNameCmp(s, r);
+	if (c < 0) return;
+	if (c == 0) break;
+      }
+    }
+  } else {
+    removeOldSegs(keptSegs, ibeg);
+    if (r.isNewSeqName()) {
+      int c = newNameCmp(s, r);
+      if (c < 0) return;
+      assert(c == 0);
+    }
   }
-  for ( ; r.isMore(); r.next()) {
+
+  do {
     const Seg &t = r.get();
-    int c = nameCmp(s, t, 0);
-    if (c > 0) continue;
-    if (c < 0) break;
     long jbeg = beg0(t);
     if (jbeg >= iend) break;
     long jend = end0(t);
     if (jend > ibeg) keptSegs.push_back(t);
-  }
+    r.next();
+  } while (!r.isNewSeqName());
 }
 
 static void writeUnjoinableSegs(SortedSegReader &querys, SortedSegReader &refs,
@@ -318,7 +348,7 @@ static void writeUnjoinableSegs(SortedSegReader &querys, SortedSegReader &refs,
     const Seg &s = querys.get();
     long ibeg = beg0(s);
     long iend = end0(s);
-    updateKeptSegs(keptSegs, refs, s);
+    updateKeptSegs(keptSegs, refs, querys);
     for (size_t j = 0; j < keptSegs.size(); ++j) {
       const Seg &t = keptSegs[j];
       long jbeg = beg0(t);
@@ -343,7 +373,7 @@ static void writeJoinedSegs(SortedSegReader &r1, SortedSegReader &r2,
     const Seg &s = r1.get();
     long ibeg = beg0(s);
     long iend = end0(s);
-    updateKeptSegs(keptSegs, r2, s);
+    updateKeptSegs(keptSegs, r2, r1);
     for (size_t j = 0; j < keptSegs.size(); ++j) {
       const Seg &t = keptSegs[j];
       long jbeg = beg0(t);

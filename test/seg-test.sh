@@ -16,15 +16,27 @@ PATH=..:$PATH
 {
     try seg-import -h
 
+    try seg-import bed demo.bed
+
+    try seg-import chain hg19-hg38-1k.chain
+
     try seg-import genePred hg19refGene.txt
     try seg-import -c genepred hg19refGene.txt
     try seg-import -i genepred hg19refGene.txt
     try seg-import -p genepred hg19refGene.txt
 
+    try seg-import gff sp.gtf
+
     try seg-import gtf sp.gtf
     try seg-import -c gtf sp.gtf
     try seg-import -i gtf sp.gtf
     try seg-import -5 -3 gtf sp.gtf
+
+    try seg-import maf a-top.maf
+
+    try seg-import psl hg19-refSeqAli100.psl
+
+    try seg-import sam a-top.sam
 
     try seg-join hg38Yrg.seg hg38Yaln3.seg
     try seg-join -c1 hg38Ycgi.seg hg38Yrg.seg

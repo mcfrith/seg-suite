@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <climits>
 #include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <fstream>
 #include <iostream>
@@ -107,21 +108,6 @@ static const char *readWord(const char *c, String &s) {
   return e;
 }
 
-static int wordCmp(const char* x, const char* y) {
-  // Like strcmp, but stops at spaces.
-  while (isGraph(*y)) {
-    if (*x != *y) return *x - *y;
-    ++x;
-    ++y;
-  }
-  return isGraph(*x);
-}
-
-static char *writeWord(char *dest, const char *c) {
-  while (isGraph(*c)) *dest++ = *c++;
-  return dest;
-}
-
 static bool isDataLine(const char *s) {
   for ( ; ; ++s) {
     if (*s == '#') return false;
@@ -139,6 +125,7 @@ static bool getDataLine(std::istream &in, std::string &line) {
 
 struct SegPart {
   size_t seqNameBeg;
+  size_t seqNameLen;
   long start;
 };
 
@@ -155,12 +142,18 @@ static void moveSeg(Seg &from, Seg &to) {
 }
 
 static int nameCmp(const Seg &x, const Seg &y, size_t part) {
-  return wordCmp(x.line.c_str() + x.parts[part].seqNameBeg,
-		 y.line.c_str() + y.parts[part].seqNameBeg);
+  const SegPart &xp = x.parts[part];
+  const SegPart &yp = y.parts[part];
+  size_t n = std::min(xp.seqNameLen, yp.seqNameLen);
+  int c = std::memcmp(x.line.c_str() + xp.seqNameBeg,
+		      y.line.c_str() + yp.seqNameBeg, n);
+  return c ? c : xp.seqNameLen - yp.seqNameLen;
 }
 
 static char *writeName(char *dest, const Seg &s, size_t part) {
-  return writeWord(dest, s.line.c_str() + s.parts[part].seqNameBeg);
+  const SegPart &p = s.parts[part];
+  std::memcpy(dest, s.line.c_str() + p.seqNameBeg, p.seqNameLen);
+  return dest + p.seqNameLen;
 }
 
 static bool isBeforeBeg(const Seg &x, const Seg &y) {
@@ -181,6 +174,7 @@ static bool readSeg(std::istream &in, Seg &s) {
     c = readWord(c, n);
     if (!c) break;
     p.seqNameBeg = n - b;
+    p.seqNameLen = c - n;
     c = readLong(c, p.start);
     if (!c) err("bad SEG line: " + s.line);
     s.parts.push_back(p);

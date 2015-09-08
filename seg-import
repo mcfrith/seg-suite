@@ -73,6 +73,7 @@ def isTranslatedMaf(seq, size):
 # This only writes segment-tuples that align all the sequences.
 # Should it write segment-tuples that align not all the sequences?
 def importMaf(lines):
+    alnNum = 0
     for k, v in itertools.groupby(lines, str.isspace):
         sLines = filter(isMafSequenceLine, v)
         if not sLines: continue
@@ -88,16 +89,21 @@ def importMaf(lines):
             raise Exception("translated DNA is not supported")
         starts = map(segStartFromMafStart, starts, strands, seqLengths)
         alignmentCols = itertools.izip(*alignmentRows)  # faster than zip
+        alnPos = 0
         # It would be more general to group by which sequences have gaps:
         for b, c in itertools.groupby(alignmentCols, isGapless):
             if b:
                 length = len(list(c))  # faster than sum(1 for _ in c)
-                printTab(length, *itertools.chain(*zip(seqNames, starts)))
+                pairs = zip(seqNames, starts) + [(alnNum, alnPos)]
+                printTab(length, *itertools.chain(*pairs))
                 starts = [i + length for i in starts]
+                alnPos += length
             else:
                 r = zip(*c)
                 spans = map(sequenceSpan, r)
                 starts = map(operator.add, starts, spans)
+                alnPos += len(r[0])
+        alnNum += 1
 
 def pslSplit(s):
     return s.rstrip(",").split(",")

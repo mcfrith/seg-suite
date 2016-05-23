@@ -1,11 +1,14 @@
 # ugh, got to keep these up to date:
-scripts = seg-import seg-merge seg-sort seg-swap
-binaries = seg-join
+scripts = seg-merge seg-sort seg-swap
+binaries = seg-import seg-join
 
 CXX = g++
 CXXFLAGS = -O3 -Wall -g
 
 all: ${binaries}
+
+seg-import: seg-import.cc mcf_string_view.hh version.hh
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS} -o $@ seg-import.cc
 
 seg-join: seg-join.cc version.hh
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS} -o $@ seg-join.cc

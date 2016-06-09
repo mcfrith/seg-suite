@@ -13,7 +13,7 @@ seg-import: seg-import.cc mcf_string_view.hh version.hh
 seg-join: seg-join.cc version.hh
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS} -o $@ seg-join.cc
 
-VERSION = \"`git rev-list --count HEAD^``git diff --quiet HEAD || echo +`\"
+VERSION = \"`git log --oneline | wc -l``git diff --quiet HEAD || echo +`\"
 UNKNOWN = \"UNKNOWN\"
 
 version.hh: FORCE

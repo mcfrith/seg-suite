@@ -13,11 +13,11 @@ seg-import: seg-import.cc mcf_string_view.hh version.hh
 seg-join: seg-join.cc version.hh
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS} -o $@ seg-join.cc
 
-VERSION = \"`hg id -n`\"
+VERSION = \"`git rev-list --count HEAD^``git diff --quiet HEAD || echo +`\"
 UNKNOWN = \"UNKNOWN\"
 
 version.hh: FORCE
-	if test -e .hg ; \
+	if test -e .git ; \
 	then echo ${VERSION} | cmp -s $@ - || echo $(VERSION) > $@ ; \
 	else test -e $@ || echo ${UNKNOWN} > $@ ; \
 	fi
@@ -33,7 +33,7 @@ README.html: README.txt
 	rst2html --stylesheet=${RST_CSS},seg-suite.css README.txt > $@
 
 log:
-	hg log --style changelog > ChangeLog.txt
+	git2cl > ChangeLog.txt
 
 distdir = seg-suite-`hg id -n`
 dist: README.html log version.hh

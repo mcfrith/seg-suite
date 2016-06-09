@@ -231,8 +231,3 @@ Miscellaneous
 The seg suite is distributed under the GNU General Public License,
 either version 3 of the License, or (at your option) any later
 version.  For details, see COPYING.txt.
-
-Its website is: http://www.cbrc.jp/seg-suite/
-
-If you have any questions, comments, or problems concerning seg-suite,
-please email: seg-suite (ATmark) cbrc (dot) jp.

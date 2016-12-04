@@ -14,7 +14,8 @@ seg-join: seg-join.cc version.hh
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS} -o $@ seg-join.cc
 
 # zero-based version number:
-VERSION = \"`git rev-list HEAD^ | wc -l``git diff --quiet HEAD || echo +`\"
+# use "grep -c ." because "wc -l" sometimes writes extra spaces
+VERSION = \"`git rev-list HEAD^ | grep -c .``git diff --quiet HEAD || echo +`\"
 UNKNOWN = \"UNKNOWN\"
 
 version.hh: FORCE

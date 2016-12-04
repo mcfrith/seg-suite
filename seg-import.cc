@@ -43,23 +43,6 @@ static std::istream &openIn(const char *fileName, std::ifstream &ifs) {
   return ifs;
 }
 
-static void importBed(std::istream &in) {
-  StringView chrom, strand;
-  std::string line;
-  while (getline(in, line)) {
-    StringView s(line);
-    s >> chrom;
-    if (!s) continue;  // xxx allow for "track" lines or "#" comments?
-    long beg, end;
-    s >> beg >> end;
-    if (!s) err("bad BED line: " + line);
-    long size = end - beg;
-    s >> strand >> strand >> strand;
-    if (s && strand == '-') beg = -end;
-    std::cout << size << '\t' << chrom << '\t' << beg << '\n';
-  }
-}
-
 static void importChain(std::istream &in) {
   StringView word, tName, tStrand, qName, qStrand;
   long tPos = 0;
@@ -372,6 +355,51 @@ static void getGene(StringView chrom, StringView name, bool isForwardStrand,
     getExons(chrom, name, isForwardStrand, exons, cdsBeg, cdsEnd, opts);
 }
 
+static void importBed(std::istream &in, const SegImportOptions &opts) {
+  StringView chrom, name, junk, strand, exonLens, exonBegs;
+  std::vector<ExonRange> exons;
+  std::string line;
+  while (getline(in, line)) {
+    StringView s(line);
+    s >> chrom;
+    if (!s) continue;  // xxx allow for "track" lines or "#" comments?
+    long beg, end;
+    s >> beg >> end;
+    if (!s) err("bad BED line: " + line);
+    s >> name;
+    if (!s) {
+      std::cout << (end - beg) << '\t' << chrom << '\t' << beg << '\n';
+      continue;
+    }
+    s >> junk >> strand;
+    bool isReverseStrand = (s && strand == '-');
+    long cdsBeg = beg;
+    long cdsEnd = beg;
+    s >> cdsBeg >> cdsEnd >> junk >> junk >> exonLens >> exonBegs;
+    if (s) {
+      while (true) {
+	long elen, ebeg;
+	exonLens >> elen;
+	exonBegs >> ebeg;
+	if (!exonLens || !exonBegs) break;
+	ExonRange r;
+	r.beg = beg + ebeg;
+	r.end = beg + ebeg + elen;
+	exons.push_back(r);
+	skipOne(exonLens);
+	skipOne(exonBegs);
+      }
+    } else {
+      ExonRange r;
+      r.beg = beg;
+      r.end = end;
+      exons.push_back(r);
+    }
+    getGene(chrom, name, !isReverseStrand, exons, cdsBeg, cdsEnd, opts);
+    exons.clear();
+  }
+}
+
 static void importGenePred(std::istream &in, const SegImportOptions &opts) {
   StringView name, chrom, strand, junk, exonBegs, exonEnds;
   std::vector<ExonRange> exons;
@@ -565,7 +593,7 @@ static void importOneFile(std::istream &in, const SegImportOptions &opts,
 			  size_t &alnNum) {
   std::string n = opts.formatName;
   makeLowercase(n);
-  if      (n == "bed") importBed(in);
+  if      (n == "bed") importBed(in, opts);
   else if (n == "chain") importChain(in);
   else if (n == "genepred") importGenePred(in, opts);
   else if (n == "gff") importGff(in);
@@ -601,7 +629,7 @@ static void run(int argc, char **argv) {
   std::string prog = argv[0];
   std::string help = "\
 Usage:\n\
-  " + prog + " bed inputFile(s)\n\
+  " + prog + " [options] bed inputFile(s)\n\
   " + prog + " chain inputFile(s)\n\
   " + prog + " [options] genePred inputFile(s)\n\
   " + prog + " gff inputFile(s)\n\

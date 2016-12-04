@@ -1,6 +1,6 @@
 # TEST seg-import -h
 Usage:
-  seg-import bed inputFile(s)
+  seg-import [options] bed inputFile(s)
   seg-import chain inputFile(s)
   seg-import [options] genePred inputFile(s)
   seg-import gff inputFile(s)
@@ -22,15 +22,23 @@ Options:
   -V, --version  show version number and exit
 
 # TEST seg-import bed demo.bed
-1167	chr7	127471196
-1167	chr7	127472363
-1167	chr7	127473530
-1167	chr7	127474697
-1167	chr7	-127477031
-1167	chr7	-127478198
-1167	chr7	-127479365
-1167	chr7	127479365
-1167	chr7	-127481699
+567	chr22	1000	cloneA	0
+488	chr22	4512	cloneA	567
+433	chr22	2000	cloneB	-832
+399	chr22	5601	cloneB	-399
+1167	chr7	127471196	Pos1	0
+1167	chr7	127472363	Pos2	0
+1167	chr7	127473530	Pos3	0
+1167	chr7	127474697	Pos4	0
+1167	chr7	127475864	Neg1	-1167
+1167	chr7	127477031	Neg2	-1167
+1167	chr7	127478198	Neg3	-1167
+1167	chr7	127479365	Pos5	0
+1167	chr7	127480532	Neg4	-1167
+
+# TEST seg-import -i bed demo.bed
+2945	chr22	1567	cloneA	567
+3168	chr22	2433	cloneB	-3567
 
 # TEST seg-import chain hg19-hg38-1k.chain
 13	chrX	51434835	chrX	-51701522

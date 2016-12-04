@@ -17,6 +17,7 @@ PATH=..:$PATH
     try seg-import -h
 
     try seg-import bed demo.bed
+    try seg-import -i bed demo.bed
 
     try seg-import chain hg19-hg38-1k.chain
 

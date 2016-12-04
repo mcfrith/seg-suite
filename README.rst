@@ -42,8 +42,8 @@ coordinate.  The next-simplest version looks like this::
 
 Each line describes a segment-pair, i.e. a gapless alignment.  The
 columns indicate: the length, first sequence name, first sequence
-start, second sequence name, and second sequence start.  In general,
-seg format describes segment-tuples.
+start, second sequence name, and second sequence start.  You can add
+more columns to describe segment-triples, segment-quadruples, etc.
 
 Gapped alignments are described simply by listing their gapless parts,
 one per line.
@@ -91,8 +91,8 @@ Details:
   extra first column are both OK.  The extended version is also OK
   (and the extended information is not used).
 
-These options are available, which affect genePred and gtf formats
-only.  For these formats, the default is to get the exons.
+These options are available, which affect bed, genePred and gtf
+formats only.  For these formats, the default is to get the exons.
 
 -c  Get coding regions (CDS).  For gtf format, this includes start and
     stop codons.

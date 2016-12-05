@@ -52,15 +52,13 @@ def isSame(things):
     for i in g: return False
     return True
 
-def isOverlappable(s, t):
-    return s[3::2] == t[3::2] and isSame(map(operator.sub, s[2::2], t[2::2]))
-
-def mergeOneNewSeg(oldSegs, newSeg):
-    for i in oldSegs:
-        if isOverlappable(i, newSeg):
-            if newSeg[0] > i[0]: i[0] = newSeg[0]  # merge overlapping SEGs
+def mergeOneNewSeg(oldSegs, y):
+    for x in oldSegs:
+        if x[3::2] == y[3::2] and isSame(map(operator.sub, x[2::2], y[2::2])):
+            if x[0] < y[0]:  # merge overlapping SEGs
+                x[0] = y[0]
             return
-    oldSegs.append(newSeg)  # the new SEG did not overlap any previous one
+    oldSegs.append(y)  # the new SEG did not overlap any previous one
 
 def segMerge(opts, args):
     oldSegs = []

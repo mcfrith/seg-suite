@@ -12,10 +12,6 @@
 
 import itertools, operator, optparse, os, signal, sys
 
-def segBeg(s): return s[1], s[2]  # seqName, begCoordinate
-
-def segEnd(s): return s[1], s[0]  # seqName, endCoordinate
-
 def sortedSegInput(fileNames):
     oldSortKey = "", 0
     if not fileNames:
@@ -43,10 +39,9 @@ def writeSeg(s):
     print "\t".join(map(str, s))
 
 def writeOrKeep(oldSegs, newSeg):
-    beg = segBeg(newSeg)
     for i in oldSegs:
-        if segEnd(i) < beg:  # it can't overlap any more: write & discard
-            writeSeg(i)
+        if i[1] < newSeg[1] or i[0] < newSeg[2]:
+            writeSeg(i)  # it can't overlap any more: write & discard
         else:
             yield i  # it might overlap something: keep it
 

@@ -32,6 +32,7 @@ PATH=..:$PATH
     try seg-import -c gtf sp.gtf
     try seg-import -i gtf sp.gtf
     try seg-import -5 -3 gtf sp.gtf
+    try seg-import gtf bad.gtf
 
     try seg-import lasttab a-top.tab
 

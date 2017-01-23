@@ -472,7 +472,9 @@ static void importGtf(std::istream &in, const SegImportOptions &opts) {
     StringView s(line);
     s >> junk;
     if (!s || junk[0] == '#') continue;
-    lines.push_back(line);
+    s >> junk >> junk;
+    if (!s || junk == "exon" || junk == "start_codon" || junk == "stop_codon")
+      lines.push_back(line);
   }
   size_t size = lines.size();
   std::vector<Gtf> records(size);
@@ -499,7 +501,7 @@ static void importGtf(std::istream &in, const SegImportOptions &opts) {
       e.beg = r.beg;
       e.end = r.end;
       exons.push_back(e);
-    } else if (r.feature == "start_codon" || r.feature == "stop_codon") {
+    } else {
       if (cdsEnd == 0) cdsBeg = r.beg;
       cdsEnd = r.end;
     }

@@ -1,0 +1,139 @@
+#! /usr/bin/env python
+# Copyright 2017 Martin C. Frith
+
+import itertools
+import operator
+import optparse
+import signal
+import string
+import sys
+
+def myOpen(fileName):  # faster than fileinput
+    if fileName == "-":
+        return sys.stdin
+    else:
+        return open(fileName)
+
+def segInput(lines):
+    for line in lines:
+        fields = line.split()
+        if line[0] == "#" or not fields:
+            continue
+        seqName = fields[1]
+        beg = int(fields[2])
+        end = beg + int(fields[0])
+        if beg < 0:
+            beg, end = -end, -beg
+        if beg < 0 or end < beg:
+            raise Exception("bad seg line: " + line.rstrip())
+        yield seqName, beg, end
+
+def mergedIntervals(sortedIntervals):
+    mergedBeg = mergedEnd = 0
+    for beg, end in sortedIntervals:
+        if beg > mergedEnd:
+            if mergedEnd:
+                yield mergedBeg, mergedEnd
+            mergedBeg = beg
+            mergedEnd = end
+        else:
+            mergedEnd = max(mergedEnd, end)
+    if mergedEnd:
+        yield mergedBeg, mergedEnd
+
+def mergedSegsPerSequence(segs):
+    for k, v in itertools.groupby(sorted(segs), operator.itemgetter(0)):
+        yield k, list(mergedIntervals(i[1:] for i in v))
+
+def sequenceInput(lines):
+    state = 0
+    for i, line in enumerate(lines):
+        if state == 0:
+            header = line
+            if line[0] == ">":
+                state = 1
+                body = []
+            elif line[0] == "@":
+                state = 2
+            else:
+                raise Exception("the sequence data must start with > or @")
+        elif state == 1:
+            if line[0] == ">":
+                yield header, "".join(body), "", ""
+                header = line
+                body = []
+            else:
+                body.append(line.translate(None, string.whitespace))
+        else:
+            if i % 4 == 0:
+                header = line
+            elif i % 4 == 1:
+                seq = line.rstrip()
+            elif i % 4 == 2:
+                header2 = line
+            else:
+                yield header, seq, header2, line
+    if state == 1:
+        yield header, "".join(body), "", ""
+
+def maskedSeqParts(opts, seq, intervals):
+    seqLen = len(seq)
+    oldEnd = 0
+    for i in intervals:
+        beg, end = i
+        if end > seqLen:  # xxx hard-coded program name
+            sys.stderr.write("seg-mask: warning: coordinate " + str(end) +
+                             " exceeds sequence length " + str(seqLen) + "\n")
+            end = seqLen
+            if beg > seqLen:
+                beg = seqLen
+        yield seq[oldEnd:beg]
+        if opts.x:
+            yield opts.x * (end - beg)
+        else:
+            yield seq[beg:end].lower()
+        oldEnd = end
+    yield seq[oldEnd:]
+
+def printWrappedSeq(seq):
+    lineLength = 50
+    for i in range(0, len(seq), lineLength):
+        end = i + lineLength
+        print seq[i:end]
+
+def doMask(opts, segDict, lines):
+    for header, seq, header2, qual in sequenceInput(lines):
+        if not opts.c:
+            seq = seq.upper()
+        fields = header[1:].split()
+        if fields:
+            name = fields[0]
+            if name in segDict:
+                seq = "".join(maskedSeqParts(opts, seq, segDict[name]))
+        sys.stdout.write(header)
+        if header2:
+            print seq
+            sys.stdout.write(header2)
+            sys.stdout.write(qual)
+        else:
+            printWrappedSeq(seq)
+
+def segMask(opts, args):
+    segs = segInput(myOpen(args[0]))
+    segDict = dict(mergedSegsPerSequence(segs))
+    doMask(opts, segDict, myOpen(args[1]))
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
+    usage = "%prog [options] seg-file fasta-or-fastq-file"
+    description = "Mask segments in sequences."
+    op = optparse.OptionParser(usage=usage, description=description)
+    op.add_option("-x", help="letter to use for masking, instead of lowercase")
+    op.add_option("-c", action="store_true",
+                  help="preserve uppercase/lowercase in non-masked regions")
+    opts, args = op.parse_args()
+    if opts.x and len(opts.x) != 1:
+        op.error("-x option requires a single-character argument")
+    if len(args) != 2:
+        op.error("I need two file names")
+    segMask(opts, args)

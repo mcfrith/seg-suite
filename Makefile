@@ -1,5 +1,5 @@
 # ugh, got to keep these up to date:
-scripts = seg-merge seg-sort seg-swap
+scripts = seg-mask seg-merge seg-sort seg-swap
 binaries = seg-import seg-join
 
 CXX = g++

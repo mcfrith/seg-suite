@@ -1,8 +1,18 @@
 seg-suite
 =========
 
-The seg suite provides tools for manipulating segments and alignments.
-It uses a format called "seg".
+The seg suite provides tools for manipulating segments, alignments,
+and annotations of sequences.
+
+The main thing it does is compose alignments.  For example, if you
+have some alignments of human DNA to elf DNA, and of elf DNA to dwarf
+DNA, you can compose them to get human-elf-dwarf alignments.
+
+Annotations (e.g. of genes) can be regarded as alignments (of genes to
+chromosomes).  So seg-suite can manipulate them too.  For example, if
+you have annotations for the human genome, and alignments between the
+human and elf genomes, seg-suite can transfer the annotations to the
+elf genome.
 
 Installation
 ------------
@@ -25,10 +35,11 @@ Or copy them to your personal ~/bin directory::
 
   make install prefix=~
 
-Description of seg format
--------------------------
+seg format
+----------
 
-The simplest version of seg format looks like this::
+The seg suite uses a format called "seg".  The simplest version looks
+like this::
 
   7       chrX    12
   5       chrY    1761
@@ -108,17 +119,50 @@ formats only.  For these formats, the default is to get the exons.
 seg-join
 --------
 
-This program joins two files of segment-tuples, based on overlap in
-the same first sequence.  For example, if you have two segment-pair
-files, ab.seg and ac.seg, you can compose them to get
-segment-triples::
+This program joins two files of segment-tuples.  It finds all
+intersections between lines in file 1 and lines in file 2, where they
+overlap in their first sequence.
+
+Example 1
+~~~~~~~~~
+
+If we have two files of segments, x.seg::
+
+  200     chr5    500
+
+and y.seg::
+
+  200     chr5    600
+
+we can join them::
+
+  seg-join x.seg y.seg > intersections.seg
+
+to get the intersections::
+
+  100     chr5    600
+
+Example 2
+~~~~~~~~~
+
+If we have two segment-pair files, ab.seg::
+
+  200     human.chr5   500     elf.chr3   800
+
+and ac.seg::
+
+  200     human.chr5   600     geneA      50
+
+we can join (a.k.a. compose) them::
 
   seg-join ab.seg ac.seg > abc.seg
 
-If you have two segment files, x.seg and y.seg, this will find all
-intersections between them::
+to get segment-triples::
 
-  seg-join x.seg y.seg > intersections.seg
+  100     human.chr5   600     elf.chr3   900     geneA   50
+
+Details
+~~~~~~~
 
 Both files must be in the order produced by seg-sort, else it will
 complain.
@@ -154,6 +198,24 @@ The following options are available.
     cd.seg::
 
       seg-join -w ab.seg cd.seg > ef.seg
+
+seg-mask
+--------
+
+This program "masks" segments in sequences.  The usage is::
+
+   seg-mask segments.seg sequences.fasta > masked.fasta
+
+This writes a copy of the sequences, with the segments in lowercase,
+and non-segments in uppercase.  The segments are taken from the first
+3 columns of the seg file.  The sequences may be in either fasta or
+fastq format.
+
+These options are available:
+
+-x X  Convert letters in segments to this letter (instead of lowercase).
+
+-c  Preserve uppercase/lowercase in non-masked regions.
 
 seg-merge
 ---------

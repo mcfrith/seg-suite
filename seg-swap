@@ -9,6 +9,8 @@
 # each tuple is on the forward strand, by flipping strands if
 # necessary.
 
+from __future__ import print_function
+
 import optparse, os, signal, sys
 
 def myOpen(fileName):  # faster than fileinput
@@ -34,7 +36,7 @@ def segSwap(opts, args):
             s[x:y] = mytemp
             if s[2][0] == "-" and not opts.s:
                 flip(s)
-            print "\t".join(s)
+            print("\t".join(s))
         if fileName != "-": f.close()
 
 if __name__ == "__main__":
@@ -53,6 +55,6 @@ if __name__ == "__main__":
 
     try: segSwap(opts, args)
     except KeyboardInterrupt: pass  # avoid silly error message
-    except Exception, e:
+    except Exception as e:
         prog = os.path.basename(sys.argv[0])
         sys.exit(prog + ": error: " + str(e))

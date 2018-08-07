@@ -10,6 +10,8 @@
 # Internally, this algorithm replaces the length (1st column) with the
 # end coordinate in the 1st sequence.
 
+from __future__ import print_function
+
 import itertools, operator, optparse, os, signal, sys
 
 def sortedSegInput(fileNames):
@@ -36,7 +38,7 @@ def sortedSegInput(fileNames):
 
 def writeSeg(s):
     s[0] -= s[2]  # replace end with length
-    print "\t".join(map(str, s))
+    print("\t".join(map(str, s)))
 
 def writeOrKeep(oldSegs, newSeg):
     for i in oldSegs:
@@ -78,6 +80,6 @@ if __name__ == "__main__":
 
     try: segMerge(opts, args)
     except KeyboardInterrupt: pass  # avoid silly error message
-    except Exception, e:
+    except Exception as e:
         prog = os.path.basename(sys.argv[0])
         sys.exit(prog + ": error: " + str(e))

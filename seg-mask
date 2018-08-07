@@ -1,11 +1,12 @@
 #! /usr/bin/env python
 # Copyright 2017 Martin C. Frith
 
+from __future__ import print_function
+
 import itertools
 import operator
 import optparse
 import signal
-import string
 import sys
 
 def myOpen(fileName):  # faster than fileinput
@@ -63,7 +64,7 @@ def sequenceInput(lines):
                 header = line
                 body = []
             else:
-                body.append(line.translate(None, string.whitespace))
+                body.extend(line.split())
         else:
             if i % 4 == 0:
                 header = line
@@ -99,7 +100,7 @@ def printWrappedSeq(seq):
     lineLength = 50
     for i in range(0, len(seq), lineLength):
         end = i + lineLength
-        print seq[i:end]
+        print(seq[i:end])
 
 def doMask(opts, segDict, lines):
     for header, seq, header2, qual in sequenceInput(lines):
@@ -112,7 +113,7 @@ def doMask(opts, segDict, lines):
                 seq = "".join(maskedSeqParts(opts, seq, segDict[name]))
         sys.stdout.write(header)
         if header2:
-            print seq
+            print(seq)
             sys.stdout.write(header2)
             sys.stdout.write(qual)
         else:

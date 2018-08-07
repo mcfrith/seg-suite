@@ -143,6 +143,7 @@ struct MafRow {
   StringView name;
   long start;
   StringView seq;
+  int letterLength;
 };
 
 static bool isGapless(const MafRow *rows, size_t numOfRows, size_t alnPos) {
@@ -166,7 +167,8 @@ static void printOneMafSegment(long length, MafRow *rows, size_t numOfRows,
 			       size_t alnNum, size_t alnPos) {
   std::cout << length;
   for (size_t i = 0; i < numOfRows; ++i) {
-    std::cout << '\t' << rows[i].name << '\t' << (rows[i].start - length);
+    const MafRow &r = rows[i];
+    std::cout << '\t' << r.name << '\t' << (r.start - length * r.letterLength);
   }
   std::cout << '\t' << alnNum << '\t' << (alnPos - length);
   std::cout << '\n';
@@ -184,7 +186,7 @@ static void doOneMaf(MafRow *rows, size_t numOfRows, size_t alnNum) {
     size_t seqLen = r.seq.size();
     if (i == 0) alnLen = seqLen;
     else if (seqLen != alnLen) err("unequal alignment length:\n" + r.line);
-    if (isTranslatedMaf(r.seq, span)) err("translated DNA is not supported");
+    r.letterLength = isTranslatedMaf(r.seq, span) ? 3 : 1;
     if (strand == '-') r.start -= seqLength;
   }
 
@@ -198,7 +200,10 @@ static void doOneMaf(MafRow *rows, size_t numOfRows, size_t alnNum) {
     }
     for (size_t i = 0; i < numOfRows; ++i) {
       MafRow &r = rows[i];
-      if (r.seq[alnPos] != '-') ++r.start;
+      char symbol = r.seq[alnPos];
+      /**/ if (symbol == '/' ) r.start -= 1;
+      else if (symbol == '\\') r.start += 1;
+      else if (symbol != '-' ) r.start += r.letterLength;
     }
   }
   if (length) printOneMafSegment(length, rows, numOfRows, alnNum, alnLen);

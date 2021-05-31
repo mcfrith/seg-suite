@@ -20,6 +20,7 @@ typedef const char *String;
 struct SegJoinOptions {
   bool isComplete1;
   bool isComplete2;
+  int overlappingFileNumber;
   int unjoinableFileNumber;
   bool isJoinOnAllSegments;
   const char *fileName1;
@@ -367,6 +368,25 @@ static void writeUnjoinableSegs(SortedSegReader &querys, SortedSegReader &refs,
   }
 }
 
+static void writeOverlappingSegs(SortedSegReader &querys,
+				 SortedSegReader &refs, bool isAll) {
+  std::vector<Seg> keptSegs;
+  for ( ; querys.isMore(); querys.next()) {
+    const Seg &s = querys.get();
+    long ibeg = beg0(s);
+    long iend = end0(s);
+    updateKeptSegs(keptSegs, refs, querys);
+    for (size_t j = 0; j < keptSegs.size(); ++j) {
+      const Seg &t = keptSegs[j];
+      long jbeg = beg0(t);
+      if (jbeg >= iend) break;
+      if (isAll && !isOverlappable(s, t)) continue;
+      writeSegSlice(s, ibeg, iend);
+      break;
+    }
+  }
+}
+
 static void writeJoinedSegs(SortedSegReader &r1, SortedSegReader &r2,
 			    bool isComplete1, bool isComplete2, bool isAll) {
   std::vector<Seg> keptSegs;
@@ -398,6 +418,10 @@ static void segJoin(const SegJoinOptions &opts) {
     writeUnjoinableSegs(r1, r2, opts.isComplete1, opts.isJoinOnAllSegments);
   else if (opts.unjoinableFileNumber == 2)
     writeUnjoinableSegs(r2, r1, opts.isComplete2, opts.isJoinOnAllSegments);
+  else if (opts.overlappingFileNumber == 1)
+    writeOverlappingSegs(r1, r2, opts.isJoinOnAllSegments);
+  else if (opts.overlappingFileNumber == 2)
+    writeOverlappingSegs(r2, r1, opts.isJoinOnAllSegments);
   else
     writeJoinedSegs(r1, r2, opts.isComplete1, opts.isComplete2,
 		    opts.isJoinOnAllSegments);
@@ -407,6 +431,7 @@ static void run(int argc, char **argv) {
   SegJoinOptions opts;
   opts.isComplete1 = false;
   opts.isComplete2 = false;
+  opts.overlappingFileNumber = 0;
   opts.unjoinableFileNumber = 0;
   opts.isJoinOnAllSegments = false;
 
@@ -418,12 +443,14 @@ Read two SEG files, and write their JOIN.\n\
 Options:\n\
   -h, --help     show this help message and exit\n\
   -c FILENUM     only use complete/contained records of file FILENUM\n\
+  -f FILENUM     write complete records of file FILENUM, that overlap anything\n\
+                 in the other file\n\
   -v FILENUM     only write unjoinable parts of file FILENUM\n\
   -w             join on whole segment-tuples, not just first segments\n\
   -V, --version  show version number and exit\n\
 ";
 
-  const char sOpts[] = "hc:v:wV";
+  const char sOpts[] = "hc:f:v:wV";
 
   static struct option lOpts[] = {
     { "help",    no_argument, 0, 'h' },
@@ -441,6 +468,12 @@ Options:\n\
       if      (isChar(optarg, '1')) opts.isComplete1 = true;
       else if (isChar(optarg, '2')) opts.isComplete2 = true;
       else err("option -c: should be 1 or 2");
+      break;
+    case 'f':
+      if (opts.overlappingFileNumber) err("option -f: cannot use twice");
+      else if (isChar(optarg, '1')) opts.overlappingFileNumber = 1;
+      else if (isChar(optarg, '2')) opts.overlappingFileNumber = 2;
+      else err("option -f: should be 1 or 2");
       break;
     case 'v':
       if (opts.unjoinableFileNumber) err("option -v: cannot use twice");

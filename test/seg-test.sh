@@ -53,6 +53,7 @@ PATH=..:$PATH
     try seg-join -w -c1 -c2 hg38Yrg.seg hg38Yrg2.seg
     try seg-join -w -v2 -c2 hg38Yrg.seg hg38Yrg2.seg
     try seg-join -v1 cutqry.seg cutref.seg
+    try seg-join -f1 hg38Ycgi.seg hg38Yrg.seg
 
     try seg-mask chrM.seg chrM.fa
     try seg-mask -c chrM.seg chrM.fa
@@ -63,5 +64,4 @@ PATH=..:$PATH
     try seg-swap -s hg38Yaln3.seg
 
     try "cut -f-3 hg38Yrg.seg | seg-merge"
-} |
-diff -u seg-test.txt -
+} | diff -u seg-test.txt -

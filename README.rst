@@ -180,6 +180,12 @@ The following options are available.
             It is possible to specify both files, by using this option
             twice.
 
+-f FILENUM  This option tells seg-join to output whole segment-tuples
+            from one of the input files, that overlap anything in the
+            other file::
+
+              seg-join -f1 x.seg y.seg > some-of-x.seg
+
 -v FILENUM  This option makes seg-join output unjoinable parts of one
             of the input files.  For example, this will get the parts
             of segments in x.seg that do not overlap any segment in

@@ -15,33 +15,21 @@ seg-join: seg-join.cc version.hh
 
 # zero-based version number:
 # use "grep -c ." because "wc -l" sometimes writes extra spaces
-VERSION = \"`git rev-list HEAD^ | grep -c .``git diff --quiet HEAD || echo +`\"
-UNKNOWN = \"UNKNOWN\"
+tag:
+	git tag -m "" `git rev-list HEAD^ | grep -c .`
+
+VERSION1 = git describe --dirty
+VERSION2 = echo '$Format:%d$ ' | sed -e 's/.*tag: *//' -e 's/[,) ].*//'
+
+VERSION = \"`test -e .git && ${VERSION1} || ${VERSION2}`\"
 
 version.hh: FORCE
-	if test -e .git ; \
-	then echo ${VERSION} | cmp -s $@ - || echo $(VERSION) > $@ ; \
-	else test -e $@ || echo ${UNKNOWN} > $@ ; \
-	fi
+	echo ${VERSION} | cmp -s $@ - || echo ${VERSION} > $@
 
 FORCE:
 
 clean:
 	rm -f ${binaries}
-
-# Ugh!  Is there a better way?
-RST_CSS = `locate html4css1.css | tail -n1`
-README.html: README.txt
-	rst2html --stylesheet=${RST_CSS},seg-suite.css README.txt > $@
-
-log:
-	git2cl > ChangeLog.txt
-
-distdir = seg-suite-`hg id -n`
-dist: README.html log version.hh
-	mkdir ${distdir}
-	cp ${scripts} *.cc *.hh Makefile *.txt README.html *.css ${distdir}
-	zip -qrm ${distdir} ${distdir}
 
 prefix = /usr/local
 exec_prefix = ${prefix}

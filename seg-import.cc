@@ -43,6 +43,10 @@ static std::istream &openIn(const char *fileName, std::ifstream &ifs) {
   return ifs;
 }
 
+static bool isStrand(char c) {
+  return c == '+' || c == '-';
+}
+
 static void importChain(std::istream &in) {
   StringView word, tName, tStrand, qName, qStrand;
   long tPos = 0;
@@ -239,15 +243,14 @@ static void importPsl(std::istream &in) {
     StringView s(line);
     s >> junk;
     if (!s || !isDigit(junk)) continue;
-    long qSize;
+    long qSize, tSize;
     for (int i = 0; i < 7; ++i) s >> junk;
-    s >> strand >> qName >> qSize >> junk >> junk >> tName;
-    for (int i = 0; i < 4; ++i) s >> junk;
-    s >> blockSizes >> qStarts >> tStarts;
+    s >> strand >> qName >> qSize >> junk >> junk >> tName >> tSize
+      >> junk >> junk >> junk >> blockSizes >> qStarts >> tStarts;
     if (!s) err("bad PSL line: " + line);
-    bool isForwardStrand = (strand == '+');
-    bool isReverseStrand = (strand == '-');
-    if (!isForwardStrand && !isReverseStrand) {
+    char qStrand = strand[0];
+    char tStrand = strand.size() > 1 ? strand[1] : '+';
+    if (strand.size() > 2 || !isStrand(qStrand) || !isStrand(tStrand)) {
       err("unrecognized strand:\n" + line);
     }
     while(true) {
@@ -256,7 +259,8 @@ static void importPsl(std::istream &in) {
       tStarts >> j;
       qStarts >> k;
       if (!blockSizes || !tStarts || !qStarts) break;
-      if (isReverseStrand) k -= qSize;
+      if (tStrand == '-') j -= tSize;
+      if (qStrand == '-') k -= qSize;
       std::cout << i << '\t'
 		<< tName << '\t' << j << '\t' << qName << '\t' << k << '\n';
       skipOne(blockSizes);

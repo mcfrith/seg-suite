@@ -39,6 +39,7 @@ PATH=..:$PATH
     try seg-import maf a-top.maf
 
     try seg-import psl hg19-refSeqAli100.psl
+    try seg-import psl te.psl
 
     try seg-import sam a-top.sam
 

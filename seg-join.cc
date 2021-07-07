@@ -17,12 +17,18 @@
 
 typedef const char *String;
 
+struct Fraction {
+  double numer;
+  double denom;
+};
+
 struct SegJoinOptions {
   bool isComplete1;
   bool isComplete2;
   int overlappingFileNumber;
   int unjoinableFileNumber;
   bool isJoinOnAllSegments;
+  Fraction minOverlap;
   const char *fileName1;
   const char *fileName2;
 };
@@ -105,6 +111,22 @@ static const char *readWord(const char *c, String &s) {
   while (isGraph(*e)) ++e;
   if (e == c) return 0;
   s = c;
+  return e;
+}
+
+static const char *readFraction(const char *c, Fraction &f) {
+  if (!c) return 0;
+  char *e;
+  double numer = std::strtod(c, &e);
+  if (numer < 0 || e == c) return 0;
+  double denom = 100;
+  if (*e == '/') {
+    denom = std::strtod(e + 1, &e);
+    if (denom <= 0) return 0;
+  }
+  if (numer > denom) return 0;
+  f.numer = numer;
+  f.denom = denom;
   return e;
 }
 
@@ -369,20 +391,29 @@ static void writeUnjoinableSegs(SortedSegReader &querys, SortedSegReader &refs,
 }
 
 static void writeOverlappingSegs(SortedSegReader &querys,
-				 SortedSegReader &refs, bool isAll) {
+				 SortedSegReader &refs,
+				 Fraction minFrac, bool isAll) {
   std::vector<Seg> keptSegs;
   for ( ; querys.isMore(); querys.next()) {
     const Seg &s = querys.get();
     long ibeg = beg0(s);
     long iend = end0(s);
+    long overlap = 0;
+    long kbeg = ibeg;
     updateKeptSegs(keptSegs, refs, querys);
     for (size_t j = 0; j < keptSegs.size(); ++j) {
       const Seg &t = keptSegs[j];
       long jbeg = beg0(t);
+      long jend = end0(t);
       if (jbeg >= iend) break;
+      if (jend <= kbeg) continue;
       if (isAll && !isOverlappable(s, t)) continue;
+      long end = std::min(iend, jend);
+      overlap += end - std::max(jbeg, kbeg);
+      kbeg = end;
+    }
+    if (overlap * minFrac.denom >= (iend - ibeg) * minFrac.numer) {
       writeSegSlice(s, ibeg, iend);
-      break;
     }
   }
 }
@@ -419,9 +450,9 @@ static void segJoin(const SegJoinOptions &opts) {
   else if (opts.unjoinableFileNumber == 2)
     writeUnjoinableSegs(r2, r1, opts.isComplete2, opts.isJoinOnAllSegments);
   else if (opts.overlappingFileNumber == 1)
-    writeOverlappingSegs(r1, r2, opts.isJoinOnAllSegments);
+    writeOverlappingSegs(r1, r2, opts.minOverlap, opts.isJoinOnAllSegments);
   else if (opts.overlappingFileNumber == 2)
-    writeOverlappingSegs(r2, r1, opts.isJoinOnAllSegments);
+    writeOverlappingSegs(r2, r1, opts.minOverlap, opts.isJoinOnAllSegments);
   else
     writeJoinedSegs(r1, r2, opts.isComplete1, opts.isComplete2,
 		    opts.isJoinOnAllSegments);
@@ -434,6 +465,8 @@ static void run(int argc, char **argv) {
   opts.overlappingFileNumber = 0;
   opts.unjoinableFileNumber = 0;
   opts.isJoinOnAllSegments = false;
+  opts.minOverlap.numer = 0;
+  opts.minOverlap.denom = 0;
 
   std::string help = "\
 Usage: " + std::string(argv[0]) + " [options] file1.seg file2.seg\n\
@@ -445,12 +478,16 @@ Options:\n\
   -c FILENUM     only use complete/contained records of file FILENUM\n\
   -f FILENUM     write complete records of file FILENUM, that overlap anything\n\
                  in the other file\n\
+  -n PERCENT     write each record of file 2, if at least PERCENT of it is\n\
+                 covered by file 1\n\
+  -x PERCENT     write each record of file 2, if at most PERCENT of it is\n\
+                 covered by file 1\n\
   -v FILENUM     only write unjoinable parts of file FILENUM\n\
   -w             join on whole segment-tuples, not just first segments\n\
   -V, --version  show version number and exit\n\
 ";
 
-  const char sOpts[] = "hc:f:v:wV";
+  const char sOpts[] = "hc:f:n:x:v:wV";
 
   static struct option lOpts[] = {
     { "help",    no_argument, 0, 'h' },
@@ -475,6 +512,18 @@ Options:\n\
       else if (isChar(optarg, '2')) opts.overlappingFileNumber = 2;
       else err("option -f: should be 1 or 2");
       break;
+    case 'n':
+      if (opts.minOverlap.denom) err("option -n/-x: cannot use twice");
+      if (!readFraction(optarg, opts.minOverlap))
+	err("option -n: bad value");
+      break;
+    case 'x':
+      if (opts.minOverlap.denom) err("option -n/-x: cannot use twice");
+      if (!readFraction(optarg, opts.minOverlap))
+	err("option -x: bad value");
+      opts.minOverlap.numer *= -1;
+      opts.minOverlap.denom *= -1;
+      break;
     case 'v':
       if (opts.unjoinableFileNumber) err("option -v: cannot use twice");
       else if (isChar(optarg, '1')) opts.unjoinableFileNumber = 1;
@@ -493,6 +542,16 @@ Options:\n\
       std::cerr << help;
       err("");
     }
+  }
+
+  if (opts.minOverlap.denom && !opts.overlappingFileNumber) {
+    opts.overlappingFileNumber = 2;
+  }
+
+  if (opts.overlappingFileNumber && !opts.minOverlap.denom) {
+    opts.minOverlap.numer = 1;
+    unsigned long x = -1;
+    opts.minOverlap.denom = x / 2 + 1;
   }
 
   if (optind != argc - 2) {

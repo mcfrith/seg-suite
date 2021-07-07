@@ -186,6 +186,20 @@ The following options are available.
 
               seg-join -f1 x.seg y.seg > some-of-x.seg
 
+-n PERCENT  This tells seg-join to output each segment-tuple from file
+            2, if at least PERCENT of it is covered by file 1::
+
+	       seg-join -n30 x.seg y.seg > some-of-y.seg
+
+            You can also use a fraction, such as ``-n1/3``.
+
+-x PERCENT  This tells seg-join to output each segment-tuple from file
+            2, if at most PERCENT of it is covered by file 1::
+
+	       seg-join -x10 x.seg y.seg > some-of-y.seg
+
+            You can also use a fraction, such as ``-x1/3``.
+
 -v FILENUM  This option makes seg-join output unjoinable parts of one
             of the input files.  For example, this will get the parts
             of segments in x.seg that do not overlap any segment in

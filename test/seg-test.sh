@@ -63,6 +63,8 @@ PATH=..:$PATH
     try seg-mask -c chrM.seg chrM.fa
     try seg-mask -xn chrM.seg chrM.fa
 
+    try seg-seq chrM.seg chrM.fa
+
     try seg-swap hg38Yaln3.seg
     try seg-swap -n3 hg38Yaln3.seg
     try seg-swap -s hg38Yaln3.seg

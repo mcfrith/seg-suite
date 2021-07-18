@@ -1,4 +1,6 @@
-// Copyright 2016 Martin C. Frith
+// Author: Martin C. Frith 2016
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Yet another re-invention of basic text parsing functions.
 // Incomplete: add more functions when needed.
 

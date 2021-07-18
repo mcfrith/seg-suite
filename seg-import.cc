@@ -1,4 +1,5 @@
-// Copyright 2016 Martin C. Frith
+// Author: Martin C. Frith 2016
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mcf_string_view.hh"
 

@@ -17,23 +17,20 @@ elf genome.
 Installation
 ------------
 
-You need to have a C++ compiler. On Linux, you might need to install a
-package called "g++". On Mac, you might need to install command-line
-developer tools. On Windows, you might need to install Cygwin.
+Please download the highest version number from
+https://github.com/mcfrith/seg-suite/releases.  Using the command
+line, go into the downloaded directory and type:
 
-Using the command line, type::
-
-  git clone https://github.com/mcfrith/seg-suite.git
-  cd seg-suite
   make
 
-Optionally, you can copy the programs to a standard "bin" directory::
+This assumes you have a C++ compiler. On Linux, you might need to
+install a package called "g++". On Mac, you might need to install
+command-line developer tools. On Windows, you might need to install
+Cygwin.
 
-  sudo make install
-
-Or copy them to your personal ~/bin directory::
-
-  make install prefix=~
+Optionally, you can copy the programs to a standard "bin" directory:
+``sudo make install``, or copy them to your personal ~/bin directory:
+``make install prefix=~``.
 
 seg format
 ----------
@@ -247,6 +244,21 @@ seg-sort, else it will complain.  Run it like this::
 
   seg-merge original.seg > merged.seg
 
+seg-seq
+-------
+
+This program gets segments of sequences::
+
+  seg-seq segments.seg sequences.fasta > parts.fasta
+
+It requires one ``seg`` file, and one or more ``fasta`` files.  It
+writes parts of the sequences specified by the 1st segment in each
+``seg`` line.
+
+Options:
+
+-n N  Use the Nth segment in each ``seg`` line.
+
 seg-sort
 --------
 
@@ -303,22 +315,9 @@ as follows::
 This command: (1) intersects the alignments, (2) cuts out the query
 name, (3) sorts and merges identical names, and (4) counts them.
 
-(In)completeness
-----------------
-
-The seg suite aims to be complete but elegantly minimal.  Right now
-it's probably too minimal.
-
 Miscellaneous
 -------------
 
-The seg suite is distributed under the GNU General Public License,
-either version 3 of the License, or (at your option) any later
-version.  For details, see COPYING.txt.
+You can use ``-`` to read a file from a pipe, for example::
 
-To get a specific version of seg-suite, e.g. version 7, do this::
-
-  make clean
-  git checkout `git rev-list --reverse HEAD | awk 'n++ == 7'`
-
-(For historical reasons, seg-suite uses zero-based version numbers.)
+   seg-import psl true.psl | seg-join -w - pred.seg | ...

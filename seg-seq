@@ -1,0 +1,64 @@
+#! /usr/bin/env python
+# Author: Martin C. Frith 2021
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+from __future__ import print_function
+
+import argparse
+import collections
+
+xComplement = "ACGT" "RYKMBDHV" "U"
+yComplement = "TGCA" "YRMKVHDB" "A"
+xComplement += xComplement.lower()
+yComplement += yComplement.lower()
+def complement(base):
+    i = xComplement.find(base)
+    return yComplement[i] if i >= 0 else base
+
+def printSegments(segDict, name, body):
+    segs = segDict[name]
+    seq = "".join(body)
+    for beg, end in segs:
+        print(">{0}:{1}-{2}".format(name, beg, end))
+        if beg <= end:
+            s = seq[beg:end]
+        else:
+            s = "".join(map(complement, reversed(seq[end:beg])))
+        print(s)
+
+def main(args):
+    fieldPos = args.n * 2
+    segDict = collections.defaultdict(list)
+    for line in args.segFile:
+        fields = line.split()
+        if fields and fields[0][0] != "#":
+            span = int(fields[0])
+            if span > 0:
+                seqName = fields[fieldPos - 1]
+                beg = int(fields[fieldPos])
+                r = abs(beg), abs(beg + span)
+                segDict[seqName].append(r)
+
+    for f in args.fastaFile:
+        name = ""
+        body = []
+        for line in f:
+            if line[0] == ">":
+                printSegments(segDict, name, body)
+                fields = line[1:].split()
+                name = fields[0] if fields else ""
+                body = []
+            else:
+                body.append(line.rstrip())
+        printSegments(segDict, name, body)
+
+if __name__ == "__main__":
+    descr = "Get segments of sequences."
+    ap = argparse.ArgumentParser(description=descr, formatter_class=
+                                 argparse.ArgumentDefaultsHelpFormatter)
+    ap.add_argument("segFile", type=argparse.FileType("r"))
+    ap.add_argument("fastaFile", type=argparse.FileType("r"), nargs="+")
+    ap.add_argument("-n", type=int, default=1,
+                    help="use the Nth segment in each segment-tuple")
+    args = ap.parse_args()
+    main(args)

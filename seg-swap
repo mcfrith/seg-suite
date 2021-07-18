@@ -1,6 +1,6 @@
 #! /usr/bin/env python
-
-# Copyright 2011, 2012, 2015 Martin C. Frith
+# Author: Martin C. Frith 2011
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Read segment-tuples in SEG format, and write them after swapping the
 # order of segments in each tuple.

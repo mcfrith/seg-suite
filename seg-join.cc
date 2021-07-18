@@ -1,4 +1,5 @@
-// Copyright 2015 Martin C. Frith
+// Author: Martin C. Frith 2015
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <getopt.h>
 

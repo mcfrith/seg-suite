@@ -19,7 +19,7 @@ Installation
 
 Please download the highest version number from
 https://github.com/mcfrith/seg-suite/releases.  Using the command
-line, go into the downloaded directory and type:
+line, go into the downloaded directory and type::
 
   make
 

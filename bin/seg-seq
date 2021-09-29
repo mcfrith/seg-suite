@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import argparse
 import collections
+import signal
 
 xComplement = "ACGT" "RYKMBDHV" "U"
 yComplement = "TGCA" "YRMKVHDB" "A"
@@ -53,6 +54,7 @@ def main(args):
         printSegments(segDict, name, body)
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
     descr = "Get segments of sequences."
     ap = argparse.ArgumentParser(description=descr, formatter_class=
                                  argparse.ArgumentDefaultsHelpFormatter)

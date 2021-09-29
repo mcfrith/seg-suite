@@ -41,6 +41,9 @@ PATH=..:$PATH
     try seg-import psl hg19-refSeqAli100.psl
     try seg-import psl te.psl
 
+    try seg-import rmsk rmsk.out
+    try seg-import rmsk rmsk.txt
+
     try seg-import sam a-top.sam
 
     try seg-join hg38Yrg.seg hg38Yaln3.seg

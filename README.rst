@@ -99,6 +99,11 @@ Details:
   extra first column are both OK.  The extended version is also OK
   (and the extended information is not used).
 
+* For rmsk format: you can give it either RepeatMasker .out format, or
+  UCSC's rmsk format.  The query sequence coordinates, and strand, are
+  correctly imported, but the repeat coordinates are not preserved
+  (because that's impossible without alignment-gap data).
+
 These options are available, which affect bed, genePred and gtf
 formats only.  For these formats, the default is to get the exons.
 
@@ -267,6 +272,11 @@ sequence name, and then in numeric order of the first start
 coordinate.  Use it like this::
 
   seg-sort original.seg > sorted.seg
+
+You can give it multiple files, to sort the lines from all files
+together::
+
+  seg-sort some.seg more.seg > sorted.seg
 
 It uses your system's sort utility, and you can pass options through
 to it.  Here are some options that might be useful.

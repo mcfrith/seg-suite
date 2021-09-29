@@ -601,6 +601,30 @@ static void importSam(std::istream &in) {
   }
 }
 
+static void importRmsk(std::istream &in) {
+  std::string line;
+  StringView junk, qName, rName, rType, rType2;
+  while (getline(in, line)) {
+    StringView s(line);
+    long beg, end;
+    char strand;
+    s >> junk >> junk >> junk >> junk >> qName >> beg >> end
+      >> junk >> strand >> rName >> rType;
+    if (s) {
+      --beg;
+    } else {
+      StringView t(line);
+      t >> junk >> junk >> junk >> junk >> junk >> qName >> beg >> end
+	>> junk >> strand >> rName >> rType >> rType2;
+      if (!t) continue;
+    }
+    std::cout << end - beg << '\t' << qName << '\t' << beg << '\t'
+	      << rName << '#' << rType;
+    if (!s && rType2 != rType) std::cout << '/' << rType2;
+    std::cout << '\t' << (strand == '+' ? 0 : beg - end) << '\n';
+  }
+}
+
 static void importOneFile(std::istream &in, const SegImportOptions &opts,
 			  size_t &alnNum) {
   std::string n = opts.formatName;
@@ -613,6 +637,7 @@ static void importOneFile(std::istream &in, const SegImportOptions &opts,
   else if (n == "lasttab") importLastTab(in, alnNum);
   else if (n == "maf") importMaf(in, alnNum);
   else if (n == "psl") importPsl(in);
+  else if (n == "rmsk") importRmsk(in);
   else if (n == "sam") importSam(in);
   else err("unknown format: " + std::string(opts.formatName));
 }
@@ -649,6 +674,7 @@ Usage:\n\
   " + prog + " lastTab inputFile(s)\n\
   " + prog + " maf inputFile(s)\n\
   " + prog + " psl inputFile(s)\n\
+  " + prog + " rmsk inputFile(s)\n\
   " + prog + " sam inputFile(s)\n\
 \n\
 Read segments or alignments in various formats, and write them in SEG format.\n\

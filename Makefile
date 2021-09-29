@@ -1,16 +1,13 @@
-# ugh, got to keep these up to date:
-scripts = seg-mask seg-merge seg-seq seg-sort seg-swap
-binaries = seg-import seg-join
+binaries = bin/seg-import bin/seg-join
 
-CXX = g++
 CXXFLAGS = -O3 -Wall -g
 
 all: ${binaries}
 
-seg-import: seg-import.cc mcf_string_view.hh version.hh
+bin/seg-import: seg-import.cc mcf_string_view.hh version.hh
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS} -o $@ seg-import.cc
 
-seg-join: seg-join.cc version.hh
+bin/seg-join: seg-join.cc version.hh
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS} -o $@ seg-join.cc
 
 # zero-based version number:
@@ -36,4 +33,4 @@ exec_prefix = ${prefix}
 bindir = ${exec_prefix}/bin
 install: all
 	mkdir -p ${bindir}
-	cp ${scripts} ${binaries} ${bindir}
+	cp bin/*[!~] ${bindir}

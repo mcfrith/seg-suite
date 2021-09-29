@@ -11,7 +11,7 @@ try () {
 d=$(dirname "$0")
 cd "$d"
 
-PATH=..:$PATH
+PATH=../bin:$PATH
 
 {
     try seg-import -h

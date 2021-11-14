@@ -37,6 +37,7 @@ PATH=../bin:$PATH
     try seg-import lasttab a-top.tab
 
     try seg-import maf a-top.maf
+    try seg-import maf hg38Y-prot.maf
 
     try seg-import psl hg19-refSeqAli100.psl
     try seg-import psl te.psl

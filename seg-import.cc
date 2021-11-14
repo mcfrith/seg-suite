@@ -149,6 +149,7 @@ struct MafRow {
   long start;
   StringView seq;
   int letterLength;
+  int lengthPerLetter;
 };
 
 static bool isGapless(const MafRow *rows, size_t numOfRows, size_t alnPos) {
@@ -158,29 +159,32 @@ static bool isGapless(const MafRow *rows, size_t numOfRows, size_t alnPos) {
   return true;
 }
 
-static bool isTranslatedMaf(StringView seq, size_t span) {
+static size_t numOfAlignedLetters(StringView seq) {
   size_t seqlen = seq.size();
   size_t gapCount = 0;
   for (size_t i = 0; i < seqlen; ++i) {
-    if (seq[i] == '\\' || seq[i] == '/') return true;
+    if (seq[i] == '\\' || seq[i] == '/') return 0;
     if (seq[i] == '-') ++gapCount;
   }
-  return seqlen - gapCount < span;
+  return seqlen - gapCount;
 }
 
-static void printOneMafSegment(long length, MafRow *rows, size_t numOfRows,
+static void printOneMafSegment(long length, int lenDiv, MafRow *rows,
+			       size_t numOfRows,
 			       size_t alnNum, size_t alnPos) {
-  std::cout << length;
+  std::cout << (length / lenDiv);
   for (size_t i = 0; i < numOfRows; ++i) {
     const MafRow &r = rows[i];
-    std::cout << '\t' << r.name << '\t' << (r.start - length * r.letterLength);
+    long beg = r.start - length * r.letterLength;
+    std::cout << '\t' << r.name << '\t' << (beg / r.lengthPerLetter);
   }
-  std::cout << '\t' << alnNum << '\t' << (alnPos - length);
+  std::cout << '\t' << alnNum << '\t' << (alnPos - length);  // xxx ???
   std::cout << '\n';
 }
 
 static void doOneMaf(MafRow *rows, size_t numOfRows, size_t alnNum) {
   size_t alnLen = 0;
+  int lenDiv = 1;
   StringView junk, strand;
   for (size_t i = 0; i < numOfRows; ++i) {
     MafRow &r = rows[i];
@@ -191,16 +195,24 @@ static void doOneMaf(MafRow *rows, size_t numOfRows, size_t alnNum) {
     size_t seqLen = r.seq.size();
     if (i == 0) alnLen = seqLen;
     else if (seqLen != alnLen) err("unequal alignment length:\n" + r.line);
-    r.letterLength = isTranslatedMaf(r.seq, span) ? 3 : 1;
     if (strand == '-') r.start -= seqLength;
+    size_t letterCount = numOfAlignedLetters(r.seq);
+    r.letterLength = 1;
+    r.lengthPerLetter = 1;
+    if (letterCount < span) r.letterLength = 3;
+    if (letterCount > span) {
+      r.lengthPerLetter = 3;
+      r.start *= 3;  // protein -> DNA coordinate
+      lenDiv = 3;
+    }
   }
 
   long length = 0;
   for (size_t alnPos = 0; alnPos < alnLen; ++alnPos) {
     if (isGapless(rows, numOfRows, alnPos)) {
       ++length;
-    } else {
-      if (length) printOneMafSegment(length, rows, numOfRows, alnNum, alnPos);
+    } else if (length) {
+      printOneMafSegment(length, lenDiv, rows, numOfRows, alnNum, alnPos);
       length = 0;
     }
     for (size_t i = 0; i < numOfRows; ++i) {
@@ -211,7 +223,9 @@ static void doOneMaf(MafRow *rows, size_t numOfRows, size_t alnNum) {
       else if (symbol != '-' ) r.start += r.letterLength;
     }
   }
-  if (length) printOneMafSegment(length, rows, numOfRows, alnNum, alnLen);
+  if (length) {
+    printOneMafSegment(length, lenDiv, rows, numOfRows, alnNum, alnLen);
+  }
 }
 
 static void importMaf(std::istream &in, size_t &alnNum) {

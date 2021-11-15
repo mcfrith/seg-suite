@@ -1,26 +1,29 @@
 # TEST seg-import -h
 Usage:
   seg-import [options] bed inputFile(s)
-  seg-import chain inputFile(s)
+  seg-import [options] chain inputFile(s)
   seg-import [options] genePred inputFile(s)
-  seg-import gff inputFile(s)
+  seg-import [options] gff inputFile(s)
   seg-import [options] gtf inputFile(s)
-  seg-import lastTab inputFile(s)
-  seg-import maf inputFile(s)
-  seg-import psl inputFile(s)
-  seg-import rmsk inputFile(s)
-  seg-import sam inputFile(s)
+  seg-import [options] lastTab inputFile(s)
+  seg-import [options] maf inputFile(s)
+  seg-import [options] psl inputFile(s)
+  seg-import [options] rmsk inputFile(s)
+  seg-import [options] sam inputFile(s)
 
 Read segments or alignments in various formats, and write them in SEG format.
 
 Options:
   -h, --help     show this help message and exit
+  -V, --version  show version number and exit
+  -f N           make the Nth segment in each seg line forward-stranded
+
+Options for bed, genePred, gtf:
   -c             get CDS (coding regions)
   -5             get 5' untranslated regions (UTRs)
   -3             get 3' untranslated regions (UTRs)
   -i             get introns
   -p             get primary transcripts (exons plus introns)
-  -V, --version  show version number and exit
 
 # TEST seg-import bed demo.bed
 567	chr22	1000	cloneA	0
@@ -5279,6 +5282,55 @@ Options:
 159	chr1	39464	MLT1F2#LTR/ERVL-MaLR	0
 300	chr1	39623	AluSx#SINE/Alu	0
 
+# TEST seg-import -f2 rmsk rmsk.out
+468	chr1	10000	(TAACCC)n#Simple_repeat	0
+995	chr1	-11463	TAR1#Satellite/telo	0
+175	chr1	-11676	L1MC#LINE/L1	0
+104	chr1	-11780	MER5B#DNA/hAT-Charlie	0
+89	chr1	-15353	MIR1_Amn#SINE/MIR	0
+52	chr1	15797	(TGCTCC)n#Simple_repeat	0
+98	chr1	-16459	Charlie15a#DNA/hAT-Charlie	0
+32	chr1	16712	(TGG)n#Simple_repeat	0
+232	chr1	18417	L1M2b#LINE/L1	0
+142	chr1	18907	L2a#LINE/L2	0
+756	chr1	19971	L3#LINE/CR1	0
+395	chr1	21949	MLT1K#LTR/ERVL-MaLR	0
+241	chr1	-23361	MIR#SINE/MIR	0
+174	chr1	23836	L2b#LINE/L2	0
+177	chr1	24072	MIR#SINE/MIR	0
+187	chr1	24260	L2b#LINE/L2	0
+103	chr1	-25284	MIRb#SINE/MIR	0
+68	chr1	25891	MIR#SINE/MIR	0
+72	chr1	26356	MIR1_Amn#SINE/MIR	0
+217	chr1	-26790	L2c#LINE/L2	0
+263	chr1	26790	AluSp#SINE/Alu	0
+167	chr1	-27220	L2c#LINE/L2	0
+275	chr1	27266	MER33#DNA/hAT-Charlie	0
+197	chr1	-27986	MIRc#SINE/MIR	0
+150	chr1	-28300	MIRb#SINE/MIR	0
+48	chr1	29744	(ACGCCC)n#Simple_repeat	0
+296	chr1	29900	L1MB3#LINE/L1	0
+190	chr1	-30532	MER53#DNA/hAT	0
+439	chr1	30694	MLT1A1#LTR/ERVL-MaLR	0
+177	chr1	31258	MIRc#SINE/MIR	0
+298	chr1	31435	AluJb#SINE/Alu	0
+19	chr1	31734	MIRc#SINE/MIR	0
+201	chr1	32840	MIR#SINE/MIR	0
+410	chr1	33046	L1MB5#LINE/L1	0
+48	chr1	33466	Alu#SINE/Alu	0
+567	chr1	-34097	L1PA6#LINE/L1	0
+235	chr1	-34349	MLT1J#LTR/ERVL-MaLR	0
+148	chr1	-34562	L2c#LINE/L2	0
+370	chr1	-34934	MLT1J2#LTR/ERVL-MaLR	0
+151	chr1	-35366	MIRc#SINE/MIR	0
+133	chr1	35366	AluJr#SINE/Alu	0
+387	chr1	37044	Charlie5#DNA/hAT-Charlie	0
+126	chr1	37734	L2c#LINE/L2	0
+162	chr1	38067	L2a#LINE/L2	0
+1224	chr1	38238	MLT1F2-int#LTR/ERVL-MaLR	0
+159	chr1	39464	MLT1F2#LTR/ERVL-MaLR	0
+300	chr1	39623	AluSx#SINE/Alu	0
+
 # TEST seg-import rmsk rmsk.txt
 468	chr1	10000	(TAACCC)n#Simple_repeat	0
 995	chr1	10468	TAR1#Satellite/telo	-995
@@ -5458,6 +5510,139 @@ Options:
 99	chr8	112107742	143/2	0
 101	chr4	142814645	144/1	0
 92	chr15	67531328	145/1	-92
+92	chrX	48214113	146/1	0
+73	chr3	117423388	147/1	0
+29	chr11	87897178	148/1	0
+45	chr11	87897207	148/1	32
+86	chrX	142057523	149/1	0
+
+# TEST seg-import -f2 sam a-top.sam
+101	chr14	85736114	2/1	0
+78	chr6	22496565	4/1	0
+91	chr13	-22730045	5/1	0
+80	chr1	5453278	7/1	0
+101	chr4	12393908	8/1	0
+93	chr2	-86448137	9/1	0
+88	chr17	-73405031	10/1	0
+81	chr8	-89512604	11/1	0
+100	chr10	15111944	12/1	0
+70	chrX	-8648118	13/1	0
+92	chr14	-29996491	14/1	0
+67	chr8	-114153840	15/1	0
+101	chr10	33172113	16/1	0
+97	chr6	-104800995	17/1	0
+96	chrX	-72348476	18/1	0
+89	chr14	-76362929	20/1	0
+101	chr15	-33868192	22/1	0
+101	chr10	-106030940	23/1	0
+97	chr3	26755153	24/1	0
+48	chr9	-123855412	25/1	0
+101	chr1	47993594	26/1	0
+83	chr4	-130094412	27/1	0
+98	chr3	175928015	28/1	0
+76	chr1	-224897640	29/1	0
+101	chr22	23076105	30/1	0
+97	chr19	-43053035	31/1	0
+89	chr2	140057514	32/1	0
+74	chr16	-31025490	33/1	0
+101	chr15	90791943	35/1	0
+98	chr15	-67839001	36/1	0
+100	chr5	118273045	37/1	0
+83	chrX	-78706309	39/1	0
+101	chr3	-165694134	40/1	0
+100	chr13	-80810406	41/1	0
+82	chr16	-4504919	42/1	0
+100	chrX	-79190652	43/1	0
+101	chr7	-92409226	44/1	0
+100	chr8	33246515	45/1	0
+101	chr1	-88330461	46/1	0
+95	chrX	-5360298	47/1	0
+101	chr2	157497054	48/1	0
+101	chr6	51454052	49/1	0
+101	chr4	130140548	50/1	0
+90	chr5	104034803	51/1	0
+69	chr4	-182658509	53/1	0
+101	chr10	-7644142	54/1	0
+81	chr2	-189817951	56/1	0
+101	chr2	192298015	57/1	0
+95	chr5	-61945231	58/1	0
+94	chr13	-58850026	59/1	0
+101	chr1	-32740852	61/1	0
+94	chr1	53687152	63/1	0
+101	chr3	-181050332	64/1	0
+101	chr15	93615210	65/1	0
+101	chrX	57469548	66/1	0
+92	chr8	79699210	67/1	0
+100	chr2	-103452166	68/1	0
+96	chrX	120684773	69/1	0
+101	chr15	22938023	70/1	0
+98	chr7	134965616	71/1	0
+100	chr7	-98031627	72/1	0
+101	chr7	-4771427	73/1	0
+72	chr7	92090201	74/1	0
+101	chr2	-168827795	75/1	0
+95	chrX	-49846435	76/1	0
+101	chr21	22698395	77/1	0
+101	chr2	-85896887	79/1	0
+81	chr1	-27777625	80/1	0
+87	chr10	134656028	81/1	0
+84	chr2	-149365464	82/1	0
+101	chr1	-178403633	84/1	0
+101	chr1	60484551	85/1	0
+101	chr6	-148707509	86/1	0
+101	chr4	108783227	87/1	0
+90	chr9	6355084	88/1	0
+101	chr12	94777131	89/1	0
+101	chr13	95754252	90/1	0
+98	chr18	964473	92/1	0
+101	chr1	221088089	93/1	0
+11	chr21	26070137	94/1	0
+75	chr21	26070149	94/1	11
+101	chr4	189548931	95/1	0
+80	chr2	199208901	96/1	0
+101	chr7	111553826	97/1	0
+78	chr17	-17340876	99/1	0
+101	chr20	14033810	100/1	0
+96	chrX	69227845	101/1	0
+85	chrX	125600292	102/1	0
+101	chr12	-40924525	103/1	0
+78	chrX	66527939	104/1	0
+75	chr3	-133775391	106/1	0
+85	chr4	-151374045	108/1	0
+101	chr10	128997754	109/1	0
+91	chr16	75288575	111/1	0
+101	chr14	39740776	113/1	0
+84	chr3	-48822639	114/1	0
+101	chr9	113947886	115/1	0
+85	chr1	-245562632	116/1	0
+101	chr1	46960800	117/1	0
+100	chrX	-66075065	119/1	0
+90	chr2	-9818724	120/1	0
+101	chr11	-106218309	121/1	0
+101	chr13	-114452287	122/1	0
+86	chr8	-51791399	123/1	0
+101	chr9	73591541	124/1	0
+71	chr15	-52544872	125/1	0
+67	chr13	29334827	127/1	0
+89	chr20	19761141	128/1	0
+46	chr6	-135112762	129/1	0
+77	chr4	165334993	130/1	0
+81	chr3	-61534821	131/1	0
+101	chr12	14494786	132/1	0
+96	chr12	-14495142	132/2	0
+101	chr4	179089730	133/1	0
+101	chr3	-107476702	134/1	0
+100	chr5	-166194012	135/1	0
+98	chr4	-154827638	136/1	0
+101	chr3	-3449601	137/1	0
+95	chr6	152388103	138/1	0
+55	chr14	-41167605	139/1	0
+101	chrX	89293179	141/1	0
+99	chr9	75795872	142/1	0
+101	chr8	-112108025	143/1	0
+99	chr8	112107742	143/2	0
+101	chr4	142814645	144/1	0
+92	chr15	-67531420	145/1	0
 92	chrX	48214113	146/1	0
 73	chr3	117423388	147/1	0
 29	chr11	87897178	148/1	0

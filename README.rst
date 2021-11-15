@@ -104,8 +104,16 @@ Details:
   correctly imported, but the repeat coordinates are not preserved
   (because that's impossible without alignment-gap data).
 
-These options are available, which affect bed, genePred and gtf
-formats only.  For these formats, the default is to get the exons.
+These options are available:
+
+-f N  Make the Nth segment in each seg line forward-stranded.  If it
+      would be reverse-stranded by default, then flip the strand of
+      each segment in that line.  The default is: if the input has
+      absolute strands then keep them, else if the input has relative
+      strands make the first segment forward-stranded.
+
+The next options affect bed, genePred and gtf formats only.  For these
+formats, the default is to get the exons.
 
 -c  Get coding regions (CDS).  For gtf format, this includes start and
     stop codons.

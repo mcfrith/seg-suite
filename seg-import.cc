@@ -636,7 +636,7 @@ static void parseCigar(std::vector<SegmentPair> &blocks, StringView &cigar,
   rpos += length;
 }
 
-static void importSam(std::istream &in) {
+static void importSam(std::istream &in, const SegImportOptions &opts) {
   StringView qname, rname, junk, cigar;
   std::vector<SegmentPair> blocks;
   std::string line;
@@ -657,15 +657,23 @@ static void importSam(std::istream &in) {
     parseCigar(blocks, cigar, rpos, qpos);
     for (size_t i = 0; i < blocks.size(); ++i) {
       const SegmentPair &x = blocks[i];
-      long qStartReal = isReverseStrand ? x.qStart - qpos : x.qStart;
-      std::cout << x.length << '\t' << rname << '\t' << x.rStart << '\t'
-		<< qname << suffix << '\t' << qStartReal << '\n';
+      long qBeg = x.qStart;
+      long rBeg = x.rStart;
+      if (isReverseStrand) {
+	qBeg -= qpos;
+	if (opts.forwardSegNum == 2) {
+	  qBeg = -(qBeg + x.length);
+	  rBeg = -(rBeg + x.length);
+	}
+      }
+      std::cout << x.length << '\t' << rname << '\t' << rBeg << '\t'
+		<< qname << suffix << '\t' << qBeg << '\n';
     }
     blocks.clear();
   }
 }
 
-static void importRmsk(std::istream &in) {
+static void importRmsk(std::istream &in, const SegImportOptions &opts) {
   std::string line;
   StringView junk, qName, rName, rType, rType2;
   while (getline(in, line)) {
@@ -682,10 +690,13 @@ static void importRmsk(std::istream &in) {
 	>> junk >> strand >> rName >> rType >> rType2;
       if (!t) continue;
     }
-    std::cout << end - beg << '\t' << qName << '\t' << beg << '\t'
+    long len = end - beg;
+    long x = (strand == '+' || opts.forwardSegNum != 2) ? beg : -end;
+    long y = (strand == '+' || opts.forwardSegNum == 2) ? 0 : -len;
+    std::cout << len << '\t' << qName << '\t' << x << '\t'
 	      << rName << '#' << rType;
     if (!s && rType2 != rType) std::cout << '/' << rType2;
-    std::cout << '\t' << (strand == '+' ? 0 : beg - end) << '\n';
+    std::cout << '\t' << y << '\n';
   }
 }
 
@@ -701,8 +712,8 @@ static void importOneFile(std::istream &in, const SegImportOptions &opts,
   else if (n == "lasttab") importLastTab(in, opts, alnNum);
   else if (n == "maf") importMaf(in, opts, alnNum);
   else if (n == "psl") importPsl(in, opts);
-  else if (n == "rmsk") importRmsk(in);
-  else if (n == "sam") importSam(in);
+  else if (n == "rmsk") importRmsk(in, opts);
+  else if (n == "sam") importSam(in, opts);
   else err("unknown format: " + std::string(opts.formatName));
 }
 
@@ -732,26 +743,29 @@ static void run(int argc, char **argv) {
   std::string help = "\
 Usage:\n\
   " + prog + " [options] bed inputFile(s)\n\
-  " + prog + " chain inputFile(s)\n\
+  " + prog + " [options] chain inputFile(s)\n\
   " + prog + " [options] genePred inputFile(s)\n\
-  " + prog + " gff inputFile(s)\n\
+  " + prog + " [options] gff inputFile(s)\n\
   " + prog + " [options] gtf inputFile(s)\n\
-  " + prog + " lastTab inputFile(s)\n\
-  " + prog + " maf inputFile(s)\n\
-  " + prog + " psl inputFile(s)\n\
-  " + prog + " rmsk inputFile(s)\n\
-  " + prog + " sam inputFile(s)\n\
+  " + prog + " [options] lastTab inputFile(s)\n\
+  " + prog + " [options] maf inputFile(s)\n\
+  " + prog + " [options] psl inputFile(s)\n\
+  " + prog + " [options] rmsk inputFile(s)\n\
+  " + prog + " [options] sam inputFile(s)\n\
 \n\
 Read segments or alignments in various formats, and write them in SEG format.\n\
 \n\
 Options:\n\
   -h, --help     show this help message and exit\n\
+  -V, --version  show version number and exit\n\
+  -f N           make the Nth segment in each seg line forward-stranded\n\
+\n\
+Options for bed, genePred, gtf:\n\
   -c             get CDS (coding regions)\n\
   -5             get 5' untranslated regions (UTRs)\n\
   -3             get 3' untranslated regions (UTRs)\n\
   -i             get introns\n\
   -p             get primary transcripts (exons plus introns)\n\
-  -V, --version  show version number and exit\n\
 ";
 
   const char sOpts[] = "hf:c53ipV";

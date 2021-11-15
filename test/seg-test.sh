@@ -54,9 +54,11 @@ PATH=../bin:$PATH
     try seg-import -f1 psl te.psl
 
     try seg-import rmsk rmsk.out
+    try seg-import -f2 rmsk rmsk.out
     try seg-import rmsk rmsk.txt
 
     try seg-import sam a-top.sam
+    try seg-import -f2 sam a-top.sam
 
     try seg-join hg38Yrg.seg hg38Yaln3.seg
     try seg-join -c1 hg38Ycgi.seg hg38Yrg.seg

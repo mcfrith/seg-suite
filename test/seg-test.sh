@@ -44,7 +44,9 @@ PATH=../bin:$PATH
     try seg-import maf hg38Y-prot.maf
 
     try seg-import psl hg19-refSeqAli100.psl
+    try seg-import -f2 psl hg19-refSeqAli100.psl
     try seg-import psl te.psl
+    try seg-import -f1 psl te.psl
 
     try seg-import rmsk rmsk.out
     try seg-import rmsk rmsk.txt

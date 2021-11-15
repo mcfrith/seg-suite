@@ -270,23 +270,43 @@ static void skipOne(StringView &s) {
   if (!s.empty()) s.remove_prefix(1);
 }
 
-static void importPsl(std::istream &in) {
+static long lastNumber(StringView commaSeparatedNumbers) {
+  const char *b = commaSeparatedNumbers.begin();
+  const char *e = commaSeparatedNumbers.end();
+  if (!isDigit(e[-1])) --e;
+  const char *m = e;
+  while (m > b && isDigit(m[-1])) --m;
+  StringView s(m, e);
+  long n = 0;
+  s >> n;
+  return n;
+}
+
+static void importPsl(std::istream &in, const SegImportOptions &opts) {
   std::string line;
   StringView junk, strand, qName, tName, blockSizes, qStarts, tStarts;
   while (getline(in, line)) {
     StringView s(line);
     s >> junk;
     if (!s || !isDigit(junk)) continue;
-    long qSize, tSize;
+    long qSize, qStart, qEnd, tSize, tStart, tEnd;
     for (int i = 0; i < 7; ++i) s >> junk;
-    s >> strand >> qName >> qSize >> junk >> junk >> tName >> tSize
-      >> junk >> junk >> junk >> blockSizes >> qStarts >> tStarts;
+    s >> strand >> qName >> qSize >> qStart >> qEnd >> tName >> tSize
+      >> tStart >> tEnd >> junk >> blockSizes >> qStarts >> tStarts;
     if (!s) err("bad PSL line: " + line);
     char qStrand = strand[0];
     char tStrand = strand.size() > 1 ? strand[1] : '+';
     if (strand.size() > 2 || !isStrand(qStrand) || !isStrand(tStrand)) {
       err("unrecognized strand:\n" + line);
     }
+    bool isFlip = ((opts.forwardSegNum == 1 && tStrand == '-') ||
+		   (opts.forwardSegNum == 2 && qStrand == '-'));
+    long tRealEnd = (tStrand == '-') ? tSize - tStart : tEnd;
+    long qRealEnd = (qStrand == '-') ? qSize - qStart : qEnd;
+    long blockSizeLast = lastNumber(blockSizes);
+    if (blockSizeLast < 1) err("bad PSL line: " + line);
+    long tLenMul = (tRealEnd - lastNumber(tStarts)) / blockSizeLast;
+    long qLenMul = (qRealEnd - lastNumber(qStarts)) / blockSizeLast;
     while(true) {
       long i, j, k;  // xxx needless string-to-num conversions
       blockSizes >> i;
@@ -295,6 +315,10 @@ static void importPsl(std::istream &in) {
       if (!blockSizes || !tStarts || !qStarts) break;
       if (tStrand == '-') j -= tSize;
       if (qStrand == '-') k -= qSize;
+      if (isFlip) {
+	j = -(j + i * tLenMul);
+	k = -(k + i * qLenMul);
+      }
       std::cout << i << '\t'
 		<< tName << '\t' << j << '\t' << qName << '\t' << k << '\n';
       skipOne(blockSizes);
@@ -669,7 +693,7 @@ static void importOneFile(std::istream &in, const SegImportOptions &opts,
   else if (n == "gtf") importGtf(in, opts);
   else if (n == "lasttab") importLastTab(in, opts, alnNum);
   else if (n == "maf") importMaf(in, opts, alnNum);
-  else if (n == "psl") importPsl(in);
+  else if (n == "psl") importPsl(in, opts);
   else if (n == "rmsk") importRmsk(in);
   else if (n == "sam") importSam(in);
   else err("unknown format: " + std::string(opts.formatName));

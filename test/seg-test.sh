@@ -37,6 +37,7 @@ PATH=../bin:$PATH
     try seg-import gtf bad.gtf
 
     try seg-import lasttab a-top.tab
+    try seg-import -f2 lasttab a-top.tab
 
     try seg-import maf a-top.maf
     try seg-import maf hg38Y-prot.maf

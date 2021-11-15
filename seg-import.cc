@@ -104,7 +104,8 @@ static void importGff(std::istream &in, const SegImportOptions &opts) {
   }
 }
 
-static void importLastTab(std::istream &in, size_t &alnNum) {
+static void importLastTab(std::istream &in, const SegImportOptions &opts,
+			  size_t &alnNum) {
   StringView junk, rName, rStrand, qName, qStrand, blocks;
   std::string line;
   while (getline(in, line)) {
@@ -119,6 +120,8 @@ static void importLastTab(std::istream &in, size_t &alnNum) {
     long rEnd = rBeg + rSpan;
     if (qStrand == '-') qBeg -= qSeqLength;
     long qEnd = qBeg + qSpan;
+    bool isFlip = ((opts.forwardSegNum == 1 && rBeg < 0) ||
+		   (opts.forwardSegNum == 2 && qBeg < 0));
     long alnPos = 0;
     do {
       long x, y;
@@ -134,10 +137,13 @@ static void importLastTab(std::istream &in, size_t &alnNum) {
 	alnPos += x + y;
 	blocks >> c;
       } else {
+	long rOut = isFlip ? -(rBeg + x) : rBeg;
+	long qOut = isFlip ? -(qBeg + x) : qBeg;
+	long alnOut = isFlip ? -(alnPos + x) : alnPos;
 	std::cout << x << '\t'
-		  << rName << '\t' << rBeg << '\t'
-		  << qName << '\t' << qBeg << '\t'
-		  << alnNum << '\t' << alnPos << '\n';
+		  << rName << '\t' << rOut << '\t'
+		  << qName << '\t' << qOut << '\t'
+		  << alnNum << '\t' << alnOut << '\n';
 	rBeg += x;
 	qBeg += x;
 	alnPos += x;
@@ -654,7 +660,7 @@ static void importOneFile(std::istream &in, const SegImportOptions &opts,
   else if (n == "genepred") importGenePred(in, opts);
   else if (n == "gff") importGff(in, opts);
   else if (n == "gtf") importGtf(in, opts);
-  else if (n == "lasttab") importLastTab(in, alnNum);
+  else if (n == "lasttab") importLastTab(in, opts, alnNum);
   else if (n == "maf") importMaf(in, alnNum);
   else if (n == "psl") importPsl(in);
   else if (n == "rmsk") importRmsk(in);

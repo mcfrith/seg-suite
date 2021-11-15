@@ -20,6 +20,7 @@ PATH=../bin:$PATH
     try seg-import -i bed demo.bed
 
     try seg-import chain hg19-hg38-1k.chain
+    try seg-import -f2 chain hg19-hg38-1k.chain
 
     try seg-import genePred hg19refGene.txt
     try seg-import -c genepred hg19refGene.txt
@@ -27,6 +28,7 @@ PATH=../bin:$PATH
     try seg-import -p genepred hg19refGene.txt
 
     try seg-import gff sp.gtf
+    try seg-import -f2 gff sp.gtf
 
     try seg-import gtf sp.gtf
     try seg-import -c gtf sp.gtf

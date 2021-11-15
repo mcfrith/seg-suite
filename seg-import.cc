@@ -17,6 +17,7 @@
 using namespace mcf;
 
 struct SegImportOptions {
+  unsigned forwardSegNum;
   bool isCds;
   bool is5utr;
   bool is3utr;
@@ -48,10 +49,11 @@ static bool isStrand(char c) {
   return c == '+' || c == '-';
 }
 
-static void importChain(std::istream &in) {
+static void importChain(std::istream &in, const SegImportOptions &opts) {
   StringView word, tName, tStrand, qName, qStrand;
   long tPos = 0;
   long qPos = 0;
+  bool isFlip = false;
   std::string line, chainLine;
   while (getline(in, line)) {
     StringView s(line);
@@ -66,13 +68,17 @@ static void importChain(std::istream &in) {
       if (!t) err("bad CHAIN line: " + chainLine);
       if (tStrand == '-') tPos -= tSize;
       if (qStrand == '-') qPos -= qSize;
+      isFlip = ((opts.forwardSegNum == 1 && tPos < 0) ||
+		(opts.forwardSegNum == 2 && qPos < 0));
     } else {
       StringView t(line);
       long size, tInc, qInc;
       t >> size;
       if (!t) err("bad CHAIN line: " + line);
-      std::cout << word << '\t' << tName << '\t' << tPos << '\t'
-		<< qName << '\t' << qPos << '\n';
+      long tBeg = isFlip ? -(tPos + size) : tPos;
+      long qBeg = isFlip ? -(qPos + size) : qPos;
+      std::cout << word << '\t' << tName << '\t' << tBeg << '\t'
+		<< qName << '\t' << qBeg << '\n';
       if (t >> tInc >> qInc) {
 	tPos += size + tInc;
 	qPos += size + qInc;
@@ -81,7 +87,7 @@ static void importChain(std::istream &in) {
   }
 }
 
-static void importGff(std::istream &in) {
+static void importGff(std::istream &in, const SegImportOptions &opts) {
   StringView seqname, junk, strand;
   std::string line;
   while (getline(in, line)) {
@@ -93,7 +99,7 @@ static void importGff(std::istream &in) {
     if (!s) err("bad GFF line: " + line);
     beg -= 1;  // convert from 1-based to 0-based coordinate
     long size = end - beg;
-    if (strand == '-') beg = -end;
+    if (strand == '-' && opts.forwardSegNum != 1) beg = -end;
     std::cout << size << '\t' << seqname << '\t' << beg << '\n';
   }
 }
@@ -644,9 +650,9 @@ static void importOneFile(std::istream &in, const SegImportOptions &opts,
   std::string n = opts.formatName;
   makeLowercase(n);
   if      (n == "bed") importBed(in, opts);
-  else if (n == "chain") importChain(in);
+  else if (n == "chain") importChain(in, opts);
   else if (n == "genepred") importGenePred(in, opts);
-  else if (n == "gff") importGff(in);
+  else if (n == "gff") importGff(in, opts);
   else if (n == "gtf") importGtf(in, opts);
   else if (n == "lasttab") importLastTab(in, alnNum);
   else if (n == "maf") importMaf(in, alnNum);
@@ -671,6 +677,7 @@ static void segImport(const SegImportOptions &opts) {
 
 static void run(int argc, char **argv) {
   SegImportOptions opts;
+  opts.forwardSegNum = 0;
   opts.isCds = false;
   opts.is5utr = false;
   opts.is3utr = false;
@@ -703,7 +710,7 @@ Options:\n\
   -V, --version  show version number and exit\n\
 ";
 
-  const char sOpts[] = "hc53ipV";
+  const char sOpts[] = "hf:c53ipV";
 
   static struct option lOpts[] = {
     { "help",    no_argument, 0, 'h' },
@@ -717,6 +724,13 @@ Options:\n\
     case 'h':
       std::cout << help;
       return;
+    case 'f':
+      {
+	StringView sv(optarg, optarg + std::strlen(optarg));
+	sv >> opts.forwardSegNum;
+	if (!sv) err("option -f: bad value");
+      }
+      break;
     case 'c':
       opts.isCds = true;
       break;

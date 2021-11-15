@@ -182,21 +182,24 @@ static size_t numOfAlignedLetters(StringView seq) {
 }
 
 static void printOneMafSegment(long length, int lenDiv, MafRow *rows,
-			       size_t numOfRows,
-			       size_t alnNum, size_t alnPos) {
+			       size_t numOfRows, size_t alnNum, size_t alnPos,
+			       bool isFlip) {
   std::cout << (length / lenDiv);
   for (size_t i = 0; i < numOfRows; ++i) {
     const MafRow &r = rows[i];
-    long beg = r.start - length * r.letterLength;
+    long beg = isFlip ? -r.start : r.start - length * r.letterLength;
     std::cout << '\t' << r.name << '\t' << (beg / r.lengthPerLetter);
   }
-  std::cout << '\t' << alnNum << '\t' << (alnPos - length);  // xxx ???
+  long beg = isFlip ? -alnPos : alnPos - length;  // xxx ???
+  std::cout << '\t' << alnNum << '\t' << beg;
   std::cout << '\n';
 }
 
-static void doOneMaf(MafRow *rows, size_t numOfRows, size_t alnNum) {
+static void doOneMaf(const SegImportOptions &opts,
+		     MafRow *rows, size_t numOfRows, size_t alnNum) {
   size_t alnLen = 0;
   int lenDiv = 1;
+  bool isFlip = false;
   StringView junk, strand;
   for (size_t i = 0; i < numOfRows; ++i) {
     MafRow &r = rows[i];
@@ -207,7 +210,10 @@ static void doOneMaf(MafRow *rows, size_t numOfRows, size_t alnNum) {
     size_t seqLen = r.seq.size();
     if (i == 0) alnLen = seqLen;
     else if (seqLen != alnLen) err("unequal alignment length:\n" + r.line);
-    if (strand == '-') r.start -= seqLength;
+    if (strand == '-') {
+      r.start -= seqLength;
+      if (opts.forwardSegNum == i + 1) isFlip = true;
+    }
     size_t letterCount = numOfAlignedLetters(r.seq);
     r.letterLength = 1;
     r.lengthPerLetter = 1;
@@ -219,13 +225,13 @@ static void doOneMaf(MafRow *rows, size_t numOfRows, size_t alnNum) {
     }
   }
 
-  long length = 0;
+  long len = 0;
   for (size_t alnPos = 0; alnPos < alnLen; ++alnPos) {
     if (isGapless(rows, numOfRows, alnPos)) {
-      ++length;
-    } else if (length) {
-      printOneMafSegment(length, lenDiv, rows, numOfRows, alnNum, alnPos);
-      length = 0;
+      ++len;
+    } else if (len) {
+      printOneMafSegment(len, lenDiv, rows, numOfRows, alnNum, alnPos, isFlip);
+      len = 0;
     }
     for (size_t i = 0; i < numOfRows; ++i) {
       MafRow &r = rows[i];
@@ -235,12 +241,13 @@ static void doOneMaf(MafRow *rows, size_t numOfRows, size_t alnNum) {
       else if (symbol != '-' ) r.start += r.letterLength;
     }
   }
-  if (length) {
-    printOneMafSegment(length, lenDiv, rows, numOfRows, alnNum, alnLen);
+  if (len) {
+    printOneMafSegment(len, lenDiv, rows, numOfRows, alnNum, alnLen, isFlip);
   }
 }
 
-static void importMaf(std::istream &in, size_t &alnNum) {
+static void importMaf(std::istream &in, const SegImportOptions &opts,
+		      size_t &alnNum) {
   std::vector<MafRow> rows;
   size_t numOfRows = 0;
   std::string line;
@@ -252,11 +259,11 @@ static void importMaf(std::istream &in, size_t &alnNum) {
       MafRow &r = rows[numOfRows - 1];
       line.swap(r.line);
     } else if (!isGraph(*s)) {
-      if (numOfRows) doOneMaf(&rows[0], numOfRows, alnNum++);
+      if (numOfRows) doOneMaf(opts, &rows[0], numOfRows, alnNum++);
       numOfRows = 0;
     }
   }
-  if (numOfRows) doOneMaf(&rows[0], numOfRows, alnNum++);
+  if (numOfRows) doOneMaf(opts, &rows[0], numOfRows, alnNum++);
 }
 
 static void skipOne(StringView &s) {
@@ -661,7 +668,7 @@ static void importOneFile(std::istream &in, const SegImportOptions &opts,
   else if (n == "gff") importGff(in, opts);
   else if (n == "gtf") importGtf(in, opts);
   else if (n == "lasttab") importLastTab(in, opts, alnNum);
-  else if (n == "maf") importMaf(in, alnNum);
+  else if (n == "maf") importMaf(in, opts, alnNum);
   else if (n == "psl") importPsl(in);
   else if (n == "rmsk") importRmsk(in);
   else if (n == "sam") importSam(in);

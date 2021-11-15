@@ -334,79 +334,84 @@ struct ExonRange {
 };
 
 static void printPrimaryTranscript(StringView chrom, StringView name,
-				   bool isForwardStrand,
+				   unsigned isRevStrands,
 				   const std::vector<ExonRange> &exons) {
   long beg = exons.front().beg;
   long end = exons.back().end;
   long size = end - beg;
-  long pos = isForwardStrand ? 0 : -size;
+  long a = (isRevStrands == 2) ? -end : beg;
+  long b = (isRevStrands == 1) ? -size : 0;
   std::cout << size << '\t'
-	    << chrom << '\t' << beg << '\t' << name << '\t' << pos << '\n';
+	    << chrom << '\t' << a << '\t' << name << '\t' << b << '\n';
 }
 
 static void printIntrons(StringView chrom, StringView name,
-			 bool isForwardStrand,
+			 unsigned isRevStrands,
 			 const std::vector<ExonRange> &exons) {
-  long origin = isForwardStrand ? exons.front().beg : exons.back().end;
+  long origin = (isRevStrands < 1) ? exons.front().beg : exons.back().end;
   for (size_t x = 1; x < exons.size(); ++x) {
     long i = exons[x - 1].end;
     long j = exons[x].beg;
+    long a = (isRevStrands < 2) ? i : -j;
+    long b = (isRevStrands < 2) ? i - origin : origin - j;
     std::cout << (j - i) << '\t'
-	      << chrom << '\t' << i << '\t'
-	      << name << '\t' << (i - origin) << '\n';
+	      << chrom << '\t' << a << '\t' << name << '\t' << b << '\n';
   }
 }
 
-static void printExons(StringView chrom, StringView name, bool isForwardStrand,
+static void printExons(StringView chrom, StringView name,
+		       unsigned isRevStrands,
 		       const std::vector<ExonRange> &exons,
 		       long printBeg, long printEnd) {
   long pos = 0;
-  if (!isForwardStrand) {
+  if (isRevStrands > 0) {
     for (size_t i = 0; i < exons.size(); ++i) {
       const ExonRange &r = exons[i];
       pos -= r.end - r.beg;
     }
   }
-  for(size_t i = 0; i < exons.size(); ++i) {
+  for (size_t i = 0; i < exons.size(); ++i) {
     const ExonRange &r = exons[i];
     long beg = std::max(r.beg, printBeg);
     long end = std::min(r.end, printEnd);
     if (beg < end) {
-      std::cout << (end - beg) << '\t' << chrom << '\t' << beg << '\t'
-		<< name << '\t' << (pos + beg - r.beg) << '\n';
+      long a = (isRevStrands < 2) ? beg : -end;
+      long b = (isRevStrands < 2) ? pos + beg - r.beg : r.beg - end - pos;
+      std::cout << (end - beg) << '\t'
+		<< chrom << '\t' << a << '\t' << name << '\t' << b << '\n';
     }
     pos += r.end - r.beg;
   }
 }
 
-static void getExons(StringView chrom, StringView name, bool isForwardStrand,
+static void getExons(StringView chrom, StringView name, unsigned isRevStrands,
 		     const std::vector<ExonRange> &exons,
 		     long cdsBeg, long cdsEnd, const SegImportOptions &opts) {
   if (cdsBeg >= cdsEnd && (opts.is5utr || opts.is3utr)) return;
-  bool isBegUtr = isForwardStrand ? opts.is5utr : opts.is3utr;
-  bool isEndUtr = isForwardStrand ? opts.is3utr : opts.is5utr;
+  bool isBegUtr = (isRevStrands < 1) ? opts.is5utr : opts.is3utr;
+  bool isEndUtr = (isRevStrands < 1) ? opts.is3utr : opts.is5utr;
   long minBeg = exons.front().beg;
   long maxEnd = exons.back().end;
   if (opts.isCds) {
     if (isBegUtr && isEndUtr) {
-      printExons(chrom, name, isForwardStrand, exons, minBeg, maxEnd);
+      printExons(chrom, name, isRevStrands, exons, minBeg, maxEnd);
     } else if (isBegUtr) {
-      printExons(chrom, name, isForwardStrand, exons, minBeg, cdsEnd);
+      printExons(chrom, name, isRevStrands, exons, minBeg, cdsEnd);
     } else if (isEndUtr) {
-      printExons(chrom, name, isForwardStrand, exons, cdsBeg, maxEnd);
+      printExons(chrom, name, isRevStrands, exons, cdsBeg, maxEnd);
     } else {
-      printExons(chrom, name, isForwardStrand, exons, cdsBeg, cdsEnd);
+      printExons(chrom, name, isRevStrands, exons, cdsBeg, cdsEnd);
     }
   } else {
     if (isBegUtr && isEndUtr) {
-      printExons(chrom, name, isForwardStrand, exons, minBeg, cdsBeg);
-      printExons(chrom, name, isForwardStrand, exons, cdsEnd, maxEnd);
+      printExons(chrom, name, isRevStrands, exons, minBeg, cdsBeg);
+      printExons(chrom, name, isRevStrands, exons, cdsEnd, maxEnd);
     } else if (isBegUtr) {
-      printExons(chrom, name, isForwardStrand, exons, minBeg, cdsBeg);
+      printExons(chrom, name, isRevStrands, exons, minBeg, cdsBeg);
     } else if (isEndUtr) {
-      printExons(chrom, name, isForwardStrand, exons, cdsEnd, maxEnd);
+      printExons(chrom, name, isRevStrands, exons, cdsEnd, maxEnd);
     } else {
-      printExons(chrom, name, isForwardStrand, exons, minBeg, maxEnd);
+      printExons(chrom, name, isRevStrands, exons, minBeg, maxEnd);
     }
   }
 }
@@ -414,12 +419,14 @@ static void getExons(StringView chrom, StringView name, bool isForwardStrand,
 static void getGene(StringView chrom, StringView name, bool isForwardStrand,
 		    const std::vector<ExonRange> &exons,
 		    long cdsBeg, long cdsEnd, const SegImportOptions &opts) {
+  unsigned isRevStrands =
+    isForwardStrand ? 0 : (opts.forwardSegNum == 2) ? 2 : 1;
   if (opts.isPrimaryTranscripts)
-    printPrimaryTranscript(chrom, name, isForwardStrand, exons);
+    printPrimaryTranscript(chrom, name, isRevStrands, exons);
   else if (opts.isIntrons)
-    printIntrons(chrom, name, isForwardStrand, exons);
+    printIntrons(chrom, name, isRevStrands, exons);
   else
-    getExons(chrom, name, isForwardStrand, exons, cdsBeg, cdsEnd, opts);
+    getExons(chrom, name, isRevStrands, exons, cdsBeg, cdsEnd, opts);
 }
 
 static void importBed(std::istream &in, const SegImportOptions &opts) {

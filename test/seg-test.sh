@@ -18,14 +18,18 @@ PATH=../bin:$PATH
 
     try seg-import bed demo.bed
     try seg-import -i bed demo.bed
+    try seg-import -i -f2 bed demo.bed
 
     try seg-import chain hg19-hg38-1k.chain
     try seg-import -f2 chain hg19-hg38-1k.chain
 
     try seg-import genePred hg19refGene.txt
+    try seg-import -f2 genePred hg19refGene.txt
     try seg-import -c genepred hg19refGene.txt
+    try seg-import -c -f2 genepred hg19refGene.txt
     try seg-import -i genepred hg19refGene.txt
     try seg-import -p genepred hg19refGene.txt
+    try seg-import -p -f2 genepred hg19refGene.txt
 
     try seg-import gff sp.gtf
     try seg-import -f2 gff sp.gtf
@@ -34,6 +38,7 @@ PATH=../bin:$PATH
     try seg-import -c gtf sp.gtf
     try seg-import -i gtf sp.gtf
     try seg-import -5 -3 gtf sp.gtf
+    try seg-import -5 -3 -f2 gtf sp.gtf
     try seg-import gtf bad.gtf
 
     try seg-import lasttab a-top.tab

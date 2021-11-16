@@ -112,6 +112,11 @@ These options are available:
       absolute strands then keep them, else if the input has relative
       strands make the first segment forward-stranded.
 
+-a  Add an extra segment to the end of each seg line, showing the
+    alignment number and position in the alignment.  This may be
+    useful for knowing which seg lines came from the same alignment.
+    Currently, this option only affects lastTab, maf, and psl formats.
+
 The next options affect bed, genePred and gtf formats only.  For these
 formats, the default is to get the exons.
 

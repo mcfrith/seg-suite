@@ -18,6 +18,7 @@ using namespace mcf;
 
 struct SegImportOptions {
   unsigned forwardSegNum;
+  bool isAddAlignmentNum;
   bool isCds;
   bool is5utr;
   bool is3utr;
@@ -122,6 +123,7 @@ static void importLastTab(std::istream &in, const SegImportOptions &opts,
     long qEnd = qBeg + qSpan;
     bool isFlip = ((opts.forwardSegNum == 1 && rBeg < 0) ||
 		   (opts.forwardSegNum == 2 && qBeg < 0));
+    ++alnNum;
     long alnPos = 0;
     do {
       long x, y;
@@ -139,19 +141,20 @@ static void importLastTab(std::istream &in, const SegImportOptions &opts,
       } else {
 	long rOut = isFlip ? -(rBeg + x) : rBeg;
 	long qOut = isFlip ? -(qBeg + x) : qBeg;
-	long alnOut = isFlip ? -(alnPos + x) : alnPos;
 	std::cout << x << '\t'
-		  << rName << '\t' << rOut << '\t'
-		  << qName << '\t' << qOut << '\t'
-		  << alnNum << '\t' << alnOut << '\n';
+		  << rName << '\t' << rOut << '\t' << qName << '\t' << qOut;
+	if (opts.isAddAlignmentNum) {
+	  long alnOut = isFlip ? -(alnPos + x) : alnPos;
+	  alnPos += x;
+	  std::cout << '\t' << alnNum << '\t' << alnOut;
+	}
+	std::cout << '\n';
 	rBeg += x;
 	qBeg += x;
-	alnPos += x;
       }
     } while (blocks);
     if (rBeg != rEnd || qBeg != qEnd)  // catches translated alignments
       err("failed on this line:\n" + line);
-    ++alnNum;
   }
 }
 
@@ -181,17 +184,19 @@ static size_t numOfAlignedLetters(StringView seq) {
   return seqlen - gapCount;
 }
 
-static void printOneMafSegment(long length, int lenDiv, MafRow *rows,
-			       size_t numOfRows, size_t alnNum, size_t alnPos,
-			       bool isFlip) {
+static void printOneMafSegment(const SegImportOptions &opts, long length,
+			       int lenDiv, MafRow *rows, size_t numOfRows,
+			       size_t alnNum, long alnPos, bool isFlip) {
   std::cout << (length / lenDiv);
   for (size_t i = 0; i < numOfRows; ++i) {
     const MafRow &r = rows[i];
     long beg = isFlip ? -r.start : r.start - length * r.letterLength;
     std::cout << '\t' << r.name << '\t' << (beg / r.lengthPerLetter);
   }
-  long beg = isFlip ? -alnPos : alnPos - length;  // xxx ???
-  std::cout << '\t' << alnNum << '\t' << beg;
+  if (opts.isAddAlignmentNum) {
+    long beg = isFlip ? -alnPos : alnPos - length;  // xxx ???
+    std::cout << '\t' << alnNum << '\t' << beg;
+  }
   std::cout << '\n';
 }
 
@@ -230,7 +235,8 @@ static void doOneMaf(const SegImportOptions &opts,
     if (isGapless(rows, numOfRows, alnPos)) {
       ++len;
     } else if (len) {
-      printOneMafSegment(len, lenDiv, rows, numOfRows, alnNum, alnPos, isFlip);
+      printOneMafSegment(opts, len, lenDiv, rows, numOfRows, alnNum, alnPos,
+			 isFlip);
       len = 0;
     }
     for (size_t i = 0; i < numOfRows; ++i) {
@@ -242,7 +248,8 @@ static void doOneMaf(const SegImportOptions &opts,
     }
   }
   if (len) {
-    printOneMafSegment(len, lenDiv, rows, numOfRows, alnNum, alnLen, isFlip);
+    printOneMafSegment(opts, len, lenDiv, rows, numOfRows, alnNum, alnLen,
+		       isFlip);
   }
 }
 
@@ -259,11 +266,11 @@ static void importMaf(std::istream &in, const SegImportOptions &opts,
       MafRow &r = rows[numOfRows - 1];
       line.swap(r.line);
     } else if (!isGraph(*s)) {
-      if (numOfRows) doOneMaf(opts, &rows[0], numOfRows, alnNum++);
+      if (numOfRows) doOneMaf(opts, &rows[0], numOfRows, ++alnNum);
       numOfRows = 0;
     }
   }
-  if (numOfRows) doOneMaf(opts, &rows[0], numOfRows, alnNum++);
+  if (numOfRows) doOneMaf(opts, &rows[0], numOfRows, ++alnNum);
 }
 
 static void skipOne(StringView &s) {
@@ -282,7 +289,8 @@ static long lastNumber(StringView commaSeparatedNumbers) {
   return n;
 }
 
-static void importPsl(std::istream &in, const SegImportOptions &opts) {
+static void importPsl(std::istream &in, const SegImportOptions &opts,
+		      size_t &alnNum) {
   std::string line;
   StringView junk, strand, qName, tName, blockSizes, qStarts, tStarts;
   while (getline(in, line)) {
@@ -307,20 +315,27 @@ static void importPsl(std::istream &in, const SegImportOptions &opts) {
     if (blockSizeLast < 1) err("bad PSL line: " + line);
     long tLenMul = (tRealEnd - lastNumber(tStarts)) / blockSizeLast;
     long qLenMul = (qRealEnd - lastNumber(qStarts)) / blockSizeLast;
-    while(true) {
-      long i, j, k;  // xxx needless string-to-num conversions
-      blockSizes >> i;
-      tStarts >> j;
-      qStarts >> k;
-      if (!blockSizes || !tStarts || !qStarts) break;
-      if (tStrand == '-') j -= tSize;
-      if (qStrand == '-') k -= qSize;
+    ++alnNum;
+    long alnPos = 0;
+    long len, tBeg, qBeg;
+    while(blockSizes >> len && tStarts >> tBeg && qStarts >> qBeg) {
+      if (tStrand == '-') tBeg -= tSize;
+      if (qStrand == '-') qBeg -= qSize;
+      if (alnPos) alnPos += (tBeg - tEnd) + (qBeg - qEnd);
+      tEnd = tBeg + len * tLenMul;
+      qEnd = qBeg + len * qLenMul;
       if (isFlip) {
-	j = -(j + i * tLenMul);
-	k = -(k + i * qLenMul);
+	tBeg = -tEnd;
+	qBeg = -qEnd;
       }
-      std::cout << i << '\t'
-		<< tName << '\t' << j << '\t' << qName << '\t' << k << '\n';
+      std::cout << len << '\t'
+		<< tName << '\t' << tBeg << '\t' << qName << '\t' << qBeg;
+      if (opts.isAddAlignmentNum) {
+	long alnBeg = isFlip ? -(alnPos + len) : alnPos;
+	alnPos += len;
+	std::cout << '\t' << alnNum << '\t' << alnBeg;
+      }
+      std::cout << '\n';
       skipOne(blockSizes);
       skipOne(tStarts);
       skipOne(qStarts);
@@ -711,7 +726,7 @@ static void importOneFile(std::istream &in, const SegImportOptions &opts,
   else if (n == "gtf") importGtf(in, opts);
   else if (n == "lasttab") importLastTab(in, opts, alnNum);
   else if (n == "maf") importMaf(in, opts, alnNum);
-  else if (n == "psl") importPsl(in, opts);
+  else if (n == "psl") importPsl(in, opts, alnNum);
   else if (n == "rmsk") importRmsk(in, opts);
   else if (n == "sam") importSam(in, opts);
   else err("unknown format: " + std::string(opts.formatName));
@@ -733,6 +748,7 @@ static void segImport(const SegImportOptions &opts) {
 static void run(int argc, char **argv) {
   SegImportOptions opts;
   opts.forwardSegNum = 0;
+  opts.isAddAlignmentNum = false;
   opts.isCds = false;
   opts.is5utr = false;
   opts.is3utr = false;
@@ -760,6 +776,9 @@ Options:\n\
   -V, --version  show version number and exit\n\
   -f N           make the Nth segment in each seg line forward-stranded\n\
 \n\
+Options for lastTab, maf, psl:\n\
+  -a             add alignment number and position to each seg line\n\
+\n\
 Options for bed, genePred, gtf:\n\
   -c             get CDS (coding regions)\n\
   -5             get 5' untranslated regions (UTRs)\n\
@@ -768,7 +787,7 @@ Options for bed, genePred, gtf:\n\
   -p             get primary transcripts (exons plus introns)\n\
 ";
 
-  const char sOpts[] = "hf:c53ipV";
+  const char sOpts[] = "hf:ac53ipV";
 
   static struct option lOpts[] = {
     { "help",    no_argument, 0, 'h' },
@@ -788,6 +807,9 @@ Options for bed, genePred, gtf:\n\
 	sv >> opts.forwardSegNum;
 	if (!sv) err("option -f: bad value");
       }
+      break;
+    case 'a':
+      opts.isAddAlignmentNum = true;
       break;
     case 'c':
       opts.isCds = true;

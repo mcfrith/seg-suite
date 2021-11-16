@@ -18,8 +18,8 @@ Installation
 ------------
 
 Please download the highest version number from
-https://github.com/mcfrith/seg-suite/releases.  Using the command
-line, go into the downloaded directory and type::
+https://github.com/mcfrith/seg-suite/tags.  Using the command line, go
+into the downloaded directory and type::
 
   make
 
@@ -28,9 +28,9 @@ install a package called "g++". On Mac, you might need to install
 command-line developer tools. On Windows, you might need to install
 Cygwin.
 
-Optionally, you can copy the programs to a standard "bin" directory:
-``sudo make install``, or copy them to your personal ~/bin directory:
-``make install prefix=~``.
+The programs are in the ``bin`` directory.  Optionally, you can copy
+them to a standard bin directory: ``sudo make install``, or copy them
+to your personal ``~/bin`` directory: ``make install prefix=~``.
 
 seg format
 ----------

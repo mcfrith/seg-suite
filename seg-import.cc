@@ -35,6 +35,24 @@ static void makeLowercase(std::string &s) {
   }
 }
 
+static bool isGraphOrSpace(char c) {
+  return c >= ' ';
+}
+
+static StringView &getWordWithSpaces(StringView &in, StringView &out) {
+  const char *b = in.begin();
+  const char *e = in.end();
+  while (true) {
+    if (b == e) return in = StringView();
+    if (isGraphOrSpace(*b)) break;
+    ++b;
+  }
+  const char *m = b;
+  do { ++m; } while (m < e && isGraphOrSpace(*m));
+  out = StringView(b, m);
+  return in = StringView(m, e);
+}
+
 static void err(const std::string& s) {
   throw std::runtime_error(s);
 }
@@ -95,8 +113,10 @@ static void importGff(std::istream &in, const SegImportOptions &opts) {
     StringView s(line);
     s >> seqname;
     if (!s || seqname[0] == '#') continue;
+    getWordWithSpaces(s, junk);
+    getWordWithSpaces(s, junk);
     long beg, end;
-    s >> junk >> junk >> beg >> end >> junk >> strand;
+    s >> beg >> end >> junk >> strand;
     if (!s) err("bad GFF line: " + line);
     beg -= 1;  // convert from 1-based to 0-based coordinate
     long size = end - beg;

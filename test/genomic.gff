@@ -1,0 +1,20 @@
+##gff-version 3
+#!gff-spec-version 1.21
+#!processor NCBI annotwriter
+#!genome-build ASM4684v1
+#!genome-build-accession NCBI_Assembly:GCF_000046845.1
+#!annotation-date 10/31/2021 10:27:34
+#!annotation-source NCBI RefSeq 
+##sequence-region NC_005966.1 1 3598621
+##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=62977
+NC_005966.1	RefSeq	region	1	3598621	.	+	.	ID=NC_005966.1:1..3598621;Dbxref=taxon:62977;Is_circular=true;Name=ANONYMOUS;gbkey=Src;genome=chromosome;mol_type=genomic DNA;strain=ADP1
+NC_005966.1	RefSeq	gene	201	1598	.	+	.	ID=gene-ACIAD_RS00005;Dbxref=GeneID:45232533;Name=dnaA;gbkey=Gene;gene=dnaA;gene_biotype=protein_coding;locus_tag=ACIAD_RS00005;old_locus_tag=ACIAD0001
+NC_005966.1	Protein Homology	CDS	201	1598	.	+	0	ID=cds-WP_004930068.1;Parent=gene-ACIAD_RS00005;Dbxref=Genbank:WP_004930068.1,GeneID:45232533;Name=WP_004930068.1;gbkey=CDS;gene=dnaA;inference=COORDINATES: similar to AA sequence:RefSeq:YP_004996698.1;locus_tag=ACIAD_RS00005;product=chromosomal replication initiator protein DnaA;protein_id=WP_004930068.1;transl_table=11
+NC_005966.1	RefSeq	gene	1834	2982	.	+	.	ID=gene-ACIAD_RS00010;Dbxref=GeneID:45232534;Name=dnaN;gbkey=Gene;gene=dnaN;gene_biotype=protein_coding;locus_tag=ACIAD_RS00010;old_locus_tag=ACIAD0002
+NC_005966.1	Protein Homology	CDS	1834	2982	.	+	0	ID=cds-WP_004930066.1;Parent=gene-ACIAD_RS00010;Dbxref=Genbank:WP_004930066.1,GeneID:45232534;Name=WP_004930066.1;gbkey=CDS;gene=dnaN;inference=COORDINATES: protein motif:HMM:TIGR00663.1;locus_tag=ACIAD_RS00010;product=DNA polymerase III subunit beta;protein_id=WP_004930066.1;transl_table=11
+NC_005966.1	RefSeq	gene	2998	4074	.	+	.	ID=gene-ACIAD_RS00015;Dbxref=GeneID:45232535;Name=recF;gbkey=Gene;gene=recF;gene_biotype=protein_coding;locus_tag=ACIAD_RS00015;old_locus_tag=ACIAD0003
+NC_005966.1	Protein Homology	CDS	2998	4074	.	+	0	ID=cds-WP_004930061.1;Parent=gene-ACIAD_RS00015;Dbxref=Genbank:WP_004930061.1,GeneID:45232535;Name=WP_004930061.1;gbkey=CDS;gene=recF;inference=COORDINATES: similar to AA sequence:RefSeq:WP_004930061.1;locus_tag=ACIAD_RS00015;product=DNA replication/repair protein RecF;protein_id=WP_004930061.1;transl_table=11
+NC_005966.1	RefSeq	gene	4127	6595	.	+	.	ID=gene-ACIAD_RS00020;Dbxref=GeneID:45232536;Name=gyrB;gbkey=Gene;gene=gyrB;gene_biotype=protein_coding;locus_tag=ACIAD_RS00020;old_locus_tag=ACIAD0004
+NC_005966.1	Protein Homology	CDS	4127	6595	.	+	0	ID=cds-WP_004930060.1;Parent=gene-ACIAD_RS00020;Dbxref=Genbank:WP_004930060.1,GeneID:45232536;Name=WP_004930060.1;gbkey=CDS;gene=gyrB;inference=COORDINATES: similar to AA sequence:RefSeq:YP_004996702.1;locus_tag=ACIAD_RS00020;product=DNA topoisomerase (ATP-hydrolyzing) subunit B;protein_id=WP_004930060.1;transl_table=11
+NC_005966.1	RefSeq	gene	6712	6948	.	-	.	ID=gene-ACIAD_RS00025;Dbxref=GeneID:45232537;Name=ACIAD_RS00025;gbkey=Gene;gene_biotype=protein_coding;locus_tag=ACIAD_RS00025;old_locus_tag=ACIAD0005
+NC_005966.1	Protein Homology	CDS	6712	6948	.	-	0	ID=cds-WP_004930057.1;Parent=gene-ACIAD_RS00025;Dbxref=Genbank:WP_004930057.1,GeneID:45232537;Name=WP_004930057.1;gbkey=CDS;inference=COORDINATES: similar to AA sequence:RefSeq:WP_004986196.1;locus_tag=ACIAD_RS00025;product=DUF2171 domain-containing protein;protein_id=WP_004930057.1;transl_table=11

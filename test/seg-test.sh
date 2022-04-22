@@ -33,6 +33,7 @@ PATH=../bin:$PATH
 
     try seg-import gff sp.gtf
     try seg-import -f2 gff sp.gtf
+    try seg-import -f1 gff genomic.gff
 
     try seg-import gtf sp.gtf
     try seg-import -c gtf sp.gtf

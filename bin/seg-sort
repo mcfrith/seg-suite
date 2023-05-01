@@ -3,4 +3,4 @@
 # Sort segments in SEG format, in alphabetical order of sequence name,
 # then ascending order of start coordinate.
 
-LC_ALL=C sort -k2,2 -k3,3n "$@"
+LC_ALL=C sort -b -k2,2 -k3n "$@"

@@ -1,0 +1,52 @@
+#! /usr/bin/env python
+# Author: Martin C. Frith 2023
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+from __future__ import print_function
+
+import argparse
+import signal
+
+def main(args):
+    for f in args.segFile:
+        for line in f:
+            fields = line.split()
+            if line[0] == "#" or not fields:
+                continue
+            length = int(fields[0])
+            n = len(fields)
+            starts = [int(fields[i]) for i in range(2, n, 2)]
+            b = args.beg
+            e = args.end
+            for x in starts:
+                if x >= 0:
+                    b = min(b, x)
+                else:
+                    e = min(e, -(x + length))
+            fields[0] = length + b + e
+            if fields[0] < 0:
+                continue
+            for i, x in enumerate(starts):
+                fields[2 * i + 2] = x - b
+            print(*fields, sep="\t")
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
+    descr = """Expand or shrink each seg at either end.  Don't expand
+past coordinate 0, and omit segs whose length would become negative."""
+    ap = argparse.ArgumentParser(description=descr)
+    ap.add_argument("-b", "--beg", type=int, metavar="INT",
+                    help="expand by this amount at the 5'-end")
+    ap.add_argument("-e", "--end", type=int, metavar="INT",
+                    help="expand by this amount at the 3'-end")
+    ap.add_argument("-g", "--grow", type=int, metavar="INT",
+                    help="expand by this amount at both ends")
+    ap.add_argument("segFile", type=argparse.FileType("r"), nargs="+")
+    args = ap.parse_args()
+    if args.grow is not None:
+        if args.beg is not None: ap.error("can't combine -g and -b")
+        if args.end is not None: ap.error("can't combine -g and -e")
+        args.beg = args.end = args.grow
+    if args.beg is None: args.beg = 0
+    if args.end is None: args.end = 0
+    main(args)

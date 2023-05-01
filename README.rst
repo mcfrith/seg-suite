@@ -277,6 +277,23 @@ Options:
 
 -n N  Use the Nth segment in each ``seg`` line.
 
+seg-shift
+---------
+
+This program shifts the edges of each segment-tuple.  For example,
+this subtracts 20 from the begin coordinates and adds 30 to the end
+coordinates (so increases length by 50)::
+
+  seg-shift -b20 -e30 old.seg > new.seg
+
+This grows by 10 at both ends (so increases length by 20)::
+
+  seg-shift -g10 old.seg > new.seg
+
+If a shift would go past coordinate 0, it stops at coordinate 0.  If a
+segment-tuple's length would become negative, it's omitted.
+
+
 seg-sort
 --------
 

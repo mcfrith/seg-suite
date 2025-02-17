@@ -1,6 +1,6 @@
 binaries = bin/seg-import bin/seg-join
 
-CXXFLAGS = -O3 -Wall -g
+CXXFLAGS = -O3 -Wall
 
 all: ${binaries}
 
